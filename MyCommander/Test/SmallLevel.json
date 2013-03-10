@@ -1,0 +1,32 @@
+{
+  "__class__": "LevelInfo", 
+  "__value__": {
+    "runningSpeed": 6.0, 
+	"flagSpawnLocations": {
+	  "Blue": [2.0, 2.0]
+	}, 
+	"teamNames": ["Blue"], 
+	"blockHeights": [[0, 0, 1, 0, 0, 0, 0, 0], 
+	                 [0, 0, 1, 0, 0, 0, 0, 0], 
+					 [0, 0, 1, 0, 0, 1, 1, 1], 
+					 [0, 0, 1, 0, 0, 0, 0, 0], 
+					 [0, 0, 1, 0, 0, 0, 0, 0],
+					 [0, 0, 1, 1, 1, 0, 0, 0], 
+					 [0, 0, 0, 0, 0, 0, 1, 0], 
+					 [0, 0, 0, 0, 0, 0, 1, 0]], 
+	"height": 8, 
+	"characterRadius": 0.25, 
+	"walkingSpeed": 3.0, 
+	"fieldOfViewAngles": [0.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 0.0], 
+	"botSpawnAreas": {
+	  "Blue": [[1.0, 7.0]], 
+	  "firingDistance": 15.0, 
+	  "width": 8, 
+	  "flagScoreLocations": {
+	    "Blue": [1.0, 7.0]
+	  }, 
+	  "gameLength": 180.0, 
+	  "initializationTime": 10.0, 
+	  "respawnTime": 45.0
+	}
+}

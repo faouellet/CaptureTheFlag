@@ -1,0 +1,12 @@
+{
+	"Plan": [
+		{ "State": [0,0,1,0,1], "Action":0 },
+		{ "State": [1,1,1,1,1], "Action":1 },
+		{ "State": [1,0,1,0,0], "Action":0 }
+	],
+	"QValues": [
+		{ "State":[0,0,0,0,0], "Action":0, "Value":0 },
+		{ "State":[1,1,1,1,1], "Action":0, "Value":0 },
+		{ "State":[1,0,1,0,0], "Action":0, "Value":0 }
+	]
+}

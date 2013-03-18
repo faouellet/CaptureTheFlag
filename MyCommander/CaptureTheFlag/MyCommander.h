@@ -5,25 +5,24 @@
 
 #include "api\Commander.h"
 
-#include "Navigator.h"
 #include "Planner.h"
 
 class MyCommander : public Commander
 {
 private:
 	Planner m_Planner;
-	Navigator m_Navigator;
-	std::map<BotInfo*, Planner::Action> m_CurrentOrders;
-	std::map<BotInfo*, Planner::State> m_PreviousState;
 
 private:
 	Planner::State GetBotState(const BotInfo* in_Bot);
 
 public:
+	MyCommander() { }
+
 	virtual std::string getName() const;
     virtual void initialize();
     virtual void tick();
     virtual void shutdown();
+	void ActionToCommand(const Planner::Actions in_Action, const BotInfo* in_Bot);
 
 };
 

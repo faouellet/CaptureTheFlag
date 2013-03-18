@@ -1,12 +1,14 @@
 #ifndef PLANNER_H
 #define PLANNER_H
 
-#include <algorithm>
 #include <map>
+#include <memory>
 #include <random>
 #include <set>
 #include <string>
 #include <utility>
+
+#include "api\GameInfo.h"
 
 /*
 * Planner
@@ -16,39 +18,40 @@
 class Planner
 {
 public:
-	enum Action { GetEnemyFlag, WaitEnemyBase, KillFlagCarrier, Defend, SupportFlagCarrier, ReturnToBase };
-	enum States { AgentFlagAtBase = 1, AgentFlagDropped = 2, OpponentFlagAtBase = 4, OpponentFlagDropped = 8, AgentCarryFlag = 16 };
+	enum Actions { NoDecision = 0, GetEnemyFlag, WaitEnemyBase, KillFlagCarrier, Defend, SupportFlagCarrier, ReturnToBase,
+		FirstAction = NoDecision, LastAction = ReturnToBase };
+
+	enum States { BaseState = 0, AgentFlagAtBase = 1, AgentFlagDropped = 2, OpponentFlagAtBase = 4, OpponentFlagDropped = 8, 
+		AgentCarryFlag = 16, TeammateCarryFlag = 32 };
 
 	typedef size_t State;
 
 private:
-	typedef std::pair<Action, float> ActionValue;
-	struct Comp
-	{
-		bool operator()(const ActionValue & in_ActVal1, const ActionValue & in_ActVal2)
-		{
-			return in_ActVal1.second > in_ActVal2.second;
-		}
-	};
+	typedef std::pair<Actions, State> ActionState;
 
 private:
 	float m_LearningRate;
 	float m_Epsilon;
-	std::map<State, Action> m_Plan;
-	std::map<State, float> m_Rewards;
-	std::map<State, std::set<ActionValue, Comp>> m_QValues;
+	std::map<ActionState, float> m_Rewards;
+	std::map<ActionState, float> m_QValues;
 	std::random_device m_RandomGenerator;
+	std::map<std::string, ActionState> m_LastOrders;
 
 public:
-	Planner(const float in_LearningRate = 0.1f, const float in_Epsilon = 0.1f);
+	Planner() { }
+	Planner(const std::unique_ptr<GameInfo> & in_Game, const float in_LearningRate = 0.1f, const float in_Epsilon = 0.1f);
 
 	bool LoadPlanFromDisk(const std::string & in_Filename);
 	bool WritePlanToDisk(const std::string & in_Filename);
 
-	Action GetNextAction(const Action & in_CurrentAction, const State & in_CurrentState, const State & in_PreviousState);
+	Actions GetNextAction(const std::string & in_BotID, const State & in_CurrentState);
 
 private:
 	void InitRewards();
+	std::string PlanToString() const;
+	std::string QValuesToString() const;
+	bool QValuesFromString(const std::string in_Content);
+	Actions GetBestAction(const State in_State);
 
 };
 

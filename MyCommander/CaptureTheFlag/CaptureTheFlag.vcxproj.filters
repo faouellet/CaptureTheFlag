@@ -23,10 +23,10 @@
     <ClCompile Include="api\NetworkCommanderClient.cpp">
       <Filter>api</Filter>
     </ClCompile>
-    <ClCompile Include="Navigator.cpp">
+    <ClCompile Include="Planner.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="Planner.cpp">
+    <ClCompile Include="Navigator.cpp">
       <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>
@@ -64,10 +64,10 @@
       <Filter>api</Filter>
     </ClInclude>
     <ClInclude Include="MyCommander.h" />
-    <ClInclude Include="Navigator.h">
+    <ClInclude Include="Planner.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="Planner.h">
+    <ClInclude Include="Navigator.h">
       <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>

@@ -28,7 +28,10 @@ THE SOFTWARE.
 #ifndef VECTOR2_H
 #define VECTOR2_H
 
+#include <algorithm>
+#include <cassert>
 #include <iosfwd>
+#include <string>
 
 /** Standard 2-dimensional vector.
     @remarks
@@ -472,6 +475,13 @@ public:
     inline friend std::ostream& operator<<(std::ostream& o, const Vector2& v)
     {
         o << "Vector2(" << v.x << ", " << v.y <<  ")";
+        return o;
+    }
+
+	// TODO : Really ??
+	inline friend std::ostream& operator<<(std::ostream& o, const char* c)
+    {
+        o << std::string(c);
         return o;
     }
 };

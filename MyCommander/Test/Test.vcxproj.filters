@@ -58,9 +58,6 @@
     <None Include="LargeLevel.json">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Plan.json">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="MediumLevel.json">
       <Filter>Resource Files</Filter>
     </None>
@@ -77,6 +74,9 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="..\CaptureTheFlag\Server.bat">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Plan.json">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

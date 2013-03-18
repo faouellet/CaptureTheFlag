@@ -7,6 +7,8 @@
 
 #include "api\Vector2.h"
 
+class IHeuristic;
+
 /*
 * Navigator
 * Plan the shortest safe distance toward a goal for the bots.
@@ -15,10 +17,7 @@
 */
 class Navigator
 {
-private:
-	enum EdgeType { Intra, Inter };
-	enum Adjacency { Above, Below, Left, Right };
-
+public:
 	struct Node
 	{
 		int Level;
@@ -37,6 +36,10 @@ private:
 			return Level == in_Node.Level && Height == in_Node.Height && Position == in_Node.Position;
 		}
 	};
+
+private:
+	enum EdgeType { Intra, Inter };
+	enum Adjacency { Above, Below, Left, Right };
 
 	struct Edge
 	{
@@ -76,15 +79,23 @@ private:
 		Entrance(const Cluster & in_Cluster1, const Cluster & in_Cluster2, const std::vector<std::pair<Node, Node>> in_Gates) :
 			Clusters(std::make_pair<Cluster, Cluster>(in_Cluster1, in_Cluster2)), Gates(in_Gates) { }
 
-		Entrance(Entrance && in_Entrance) : Clusters(std::move(in_Entrance.Clusters)),  {}
+		Entrance(Entrance && in_Entrance) : Clusters(std::move(in_Entrance.Clusters)), Gates(std::move(in_Entrance.Gates)) {}
+	};
+
+	struct Comparator
+	{
+		bool operator()(const std::pair<Node, double> in_Value1, const std::pair<Node, double> in_Value2) const
+		{
+			return in_Value1.second < in_Value2.second;
+		}
 	};
 
 private:
-	int m_BaseLevelLength;
-	int m_BaseLevelWidth;
 	int m_MaxEntranceWidth;
 	std::vector<std::vector<Cluster>> m_Clusters;
 	std::vector<std::vector<Entrance>> m_Entrances;
+	std::vector<std::vector<Node>> m_Nodes;
+	std::vector<std::vector<Edge>> m_Edges;
 
 public:
 	Navigator(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width, const int in_MaxEntranceWidth = 3);
@@ -92,6 +103,8 @@ public:
 	Vector2 GetBestDirection(const Vector2 & in_Start, const Vector2 & in_Goal, const int in_Level);
 
 private:
+	double AStar(const Node & in_Start, const Node & in_Goal, const int in_Level, const IHeuristic & in_Heuristic) const;
+
 	// Offline processing
 
 	void AbstractMaze();

@@ -70,5 +70,8 @@
     <ClInclude Include="Navigator.h">
       <Filter>utils</Filter>
     </ClInclude>
+    <ClInclude Include="Heuristics.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

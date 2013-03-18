@@ -30,6 +30,7 @@
     <ClInclude Include="api\json.h" />
     <ClInclude Include="api\NetworkCommanderClient.h" />
     <ClInclude Include="api\Vector2.h" />
+    <ClInclude Include="Heuristics.h" />
     <ClInclude Include="MyCommander.h" />
     <ClInclude Include="Navigator.h" />
     <ClInclude Include="Planner.h" />

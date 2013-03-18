@@ -4,5 +4,5 @@ Installation:
 
 2- Télécharger et installer AI Sandbox 
 
-3- Télécharger MyCommander
+3- Télécharger le repo
 

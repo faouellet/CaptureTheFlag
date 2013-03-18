@@ -3,23 +3,53 @@
 #include <algorithm>
 #include <cassert>
 #include <limits>
+#include <set>
+
+#include "Heuristics.h"
 
 Navigator::Navigator(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width,
-					 const int in_MaxEntranceWidth) : 
-m_BaseLevelLength(in_Length), m_BaseLevelWidth(in_Width), m_MaxEntranceWidth(in_MaxEntranceWidth) 
+					 const int in_MaxEntranceWidth) : m_MaxEntranceWidth(in_MaxEntranceWidth) 
 {
 	int l_X = 0, l_Y = 0;
-	std::for_each(in_Level.get(), in_Level.get() + m_BaseLevelLength * m_BaseLevelWidth, [&l_X, &l_Y, this](const float in_Block)
+	std::for_each(in_Level.get(), in_Level.get() + in_Length * in_Width, [&in_Length, &l_X, &l_Y, this](const float in_Block)
 	{
-		m_Clusters[0].push_back(Navigator::Cluster(0, 1, 1,
-			std::vector<Navigator::Node>(1,Navigator::Node(0, static_cast<int>(in_Block), 
-			Vector2(static_cast<float>(l_X), static_cast<float>(l_Y))))));
-		if(l_X == m_BaseLevelLength)
+		// The first level cluster is in fact the whole map
+		Node l_Node(0, static_cast<int>(in_Block), Vector2(static_cast<float>(l_X), static_cast<float>(l_Y)));
+		m_Clusters[0].begin()->Nodes.push_back(l_Node);
+		m_Nodes[0].push_back(l_Node);
+
+		if(l_X == in_Length)
 		{
 			l_X = 0;
 			++l_Y;
 		}
 	});
+	m_Clusters[0].begin()->Length = in_Length;
+	m_Clusters[0].begin()->Width = in_Width;
+}
+
+// TODO : Path ?
+double Navigator::AStar(const Node & in_Start, const Node & in_Goal, const int in_Level, const IHeuristic & in_Heuristic) const
+{
+	std::set<std::pair<Node, double>, Comparator> l_Closed;
+	std::set<std::pair<Node, double>, Comparator> l_Open;
+	l_Open.insert(std::make_pair<Node, double>(in_Start, 0.0));
+	double l_Distance = 0.0;
+
+	while(true)
+	{
+		if(l_Open.empty())
+			return std::numeric_limits<double>::infinity();
+
+		Node l_Node = l_Open.begin()->first;
+		l_Closed.insert(l_Node);
+		l_Open.erase(l_Open.begin());
+
+		if(l_Node == in_Goal)
+			return l_Distance;
+
+		std::for_each(l_Node.);
+	}
 }
 
 // ********** Offline processing **********
@@ -99,29 +129,19 @@ void Navigator::BuildEntrances(const Cluster & in_Cluster1, const Cluster & in_C
 	switch (in_Adjacency)
 	{
 		case Above:
-		{
 			BuildTopEntrances(in_Cluster1, in_Cluster2, l_Gates);
 			break;
-		}
 		case Below:
-		{
 			BuildTopEntrances(in_Cluster2, in_Cluster1, l_Gates);
 			break;
-		}
 		case Left:
-		{
 			BuildSideEntrances(in_Cluster1, in_Cluster2, l_Gates);
 			break;
-		}
 		case Right:
-		{
 			BuildSideEntrances(in_Cluster2, in_Cluster1, l_Gates);
 			break;
-		}
 		default:
-		{
 			break;
-		}
 	}
 
 	m_Entrances[in_Level].push_back(Entrance(in_Cluster1, in_Cluster2, l_Gates));
@@ -180,13 +200,18 @@ void Navigator::BuildGraph()
 		auto l_Cluster1 = std::find(m_Clusters[1].begin(), m_Clusters[1].end(), in_Entrance.Clusters.first);
 		auto l_Cluster2 = std::find(m_Clusters[1].begin(), m_Clusters[1].end(), in_Entrance.Clusters.second);
 
-		std::for_each(in_Entrance.Gates.begin(), in_Entrance.Gates.end(), [&l_Cluster1, &l_Cluster2](std::pair<Node,Node> in_Gate)
+		std::for_each(in_Entrance.Gates.begin(), in_Entrance.Gates.end(), [&l_Cluster1, &l_Cluster2, this](std::pair<Node,Node> in_Gate)
 		{
 			l_Cluster1->Nodes.push_back(in_Gate.first);
 			l_Cluster2->Nodes.push_back(in_Gate.second);
 
+			m_Nodes[1].push_back(in_Gate.first);
+			m_Nodes[1].push_back(in_Gate.second);
+
 			l_Cluster1->Edges.push_back(Edge(in_Gate.first, in_Gate.second, 1, 1.0, Inter));
 			l_Cluster1->Edges.push_back(Edge(in_Gate.second, in_Gate.first, 1, 1.0, Inter));
+
+			m_Edges[1].push_back(Edge(in_Gate.first, in_Gate.second, 1, 1.0, Inter));
 		});
 	});
 	AddIntraEdgesToClusters(1);
@@ -263,7 +288,7 @@ double Navigator::SearchForDistance(const Node & in_Node1, const Node & in_Node2
 	if(in_Node1.Height || in_Node2.Height)
 		return std::numeric_limits<double>::infinity();
 
-
+	return AStar(in_Node1, in_Node2, in_Cluster.Level, TrivialHeuristic());
 }
 
 // TODO : Vector2 or Node for args ?

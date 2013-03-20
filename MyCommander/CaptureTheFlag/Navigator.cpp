@@ -16,7 +16,8 @@ Navigator::Navigator(const std::unique_ptr<float[]> & in_Level, const int in_Len
 		// The first level cluster is in fact the whole map
 		Node l_Node(0, static_cast<int>(in_Block), Vector2(static_cast<float>(l_X), static_cast<float>(l_Y)));
 		m_Clusters[0].begin()->Nodes.push_back(l_Node);
-		m_Nodes[0].push_back(l_Node);
+		// TODO : Construct the low level graph and the low level cluster local graph
+		// m_Graphs[0].insert(l_Node);
 
 		if(l_X == in_Length)
 		{
@@ -28,27 +29,90 @@ Navigator::Navigator(const std::unique_ptr<float[]> & in_Level, const int in_Len
 	m_Clusters[0].begin()->Width = in_Width;
 }
 
-// TODO : Path ?
-double Navigator::AStar(const Node & in_Start, const Node & in_Goal, const int in_Level, const IHeuristic & in_Heuristic) const
+double Navigator::AStar(const Node & in_Start, const Node & in_Goal, const int in_Level, const IHeuristic & in_Heuristic)
 {
 	std::set<std::pair<Node, double>, Comparator> l_Closed;
-	std::set<std::pair<Node, double>, Comparator> l_Open;
-	l_Open.insert(std::make_pair<Node, double>(in_Start, 0.0));
-	double l_Distance = 0.0;
+	std::set<std::pair<Node, double>, Comparator> l_Opened;
+	l_Opened.insert(std::make_pair<Node, double>(in_Start, 0.0));
+	std::map<Node, Node> l_Parents;
+	l_Parents[in_Start] = Node();
+	std::map<Node, double> l_RealCosts;
+	std::vector<Node> l_Path;
 
+	// TODO : Yeaaahh.... about that condition...
 	while(true)
 	{
-		if(l_Open.empty())
+		if(l_Opened.empty())
 			return std::numeric_limits<double>::infinity();
 
-		Node l_Node = l_Open.begin()->first;
-		l_Closed.insert(l_Node);
-		l_Open.erase(l_Open.begin());
+		// TODO : Cache the call l_Opened.begin() ?
+		Node l_Node = l_Opened.begin()->first;
+		l_Closed.insert(*l_Opened.begin());
+		l_Opened.erase(l_Opened.begin());
 
 		if(l_Node == in_Goal)
-			return l_Distance;
+		{
+			// Reverse the parents' chain to get the path
+			Node l_ParentNode = l_Parents[l_Node];
+			Node l_EndNode;
 
-		std::for_each(l_Node.);
+			l_Path.push_back(l_Node);
+			 
+			while(l_ParentNode != l_EndNode)
+			{
+				l_Path.push_back(l_ParentNode);
+				l_ParentNode = l_Parents[l_ParentNode];
+			}
+			// TODO : Use std::deque instead of reversing a vector ?
+			std::reverse(l_Path.begin(), l_Path.end());
+
+			// Cache the path
+			m_Paths[in_Start][in_Goal] = l_Path;
+
+			return l_RealCosts[l_Node];
+		}
+
+		std::for_each(m_Graphs[in_Level].at(l_Node).begin(), m_Graphs[in_Level].at(l_Node).end(), 
+			[&l_Closed, &l_Opened, &l_RealCosts, &l_Node,& l_Parents, &in_Heuristic, &in_Goal]
+		(const std::map<Node, double>::value_type & in_Val)
+		{
+			// Transition between diagonal nodes is 1.42 and 1 for vertical/horizontal nodes
+			double l_TransitionCost = (in_Val.first.Position.x == l_Node.Position.x 
+				|| in_Val.first.Position.y == l_Node.Position.y) ? 1.0 : 1.42;
+
+			l_RealCosts[in_Val.first] = l_RealCosts[l_Node] + l_TransitionCost;
+			double l_ValCost = l_RealCosts[in_Val.first] + in_Heuristic(in_Val.first, in_Goal);
+			l_Parents[in_Val.first] = l_Node;
+			
+			// TODO : Merge the two loops ? Or at least don't repeat this much code...
+			for(auto l_OpenedIt = l_Opened.begin(); l_OpenedIt != l_Opened.end(); ++l_OpenedIt)
+			{
+				if(l_OpenedIt->first == in_Val.first)
+				{
+					double l_NeighborCost = l_RealCosts[l_OpenedIt->first] + in_Heuristic(l_OpenedIt->first, in_Goal);
+					if(l_ValCost <= l_NeighborCost)
+					{
+						l_Opened.erase(l_OpenedIt);
+						break;
+					}					
+				}
+			}
+
+			for(auto l_ClosedIt = l_Opened.begin(); l_ClosedIt != l_Opened.end(); ++l_ClosedIt)
+			{
+				if(l_ClosedIt->first == in_Val.first)
+				{					
+					double l_NeighborCost = l_RealCosts[l_ClosedIt->first] + in_Heuristic(l_ClosedIt->first, in_Goal);
+					if(l_ValCost <= l_NeighborCost)
+					{
+						l_Closed.erase(l_ClosedIt);
+						break;
+					}					
+				}
+			}
+			
+			l_Opened.insert(std::make_pair(in_Val.first, l_ValCost));
+		});
 	}
 }
 
@@ -114,8 +178,16 @@ bool Navigator::Adjacent(const Cluster & in_Cluster1, const Cluster & in_Cluster
 void Navigator::BuildClusters(const int in_Level)
 {
 	// TODO : The levels seem to be 50x88, should confirm
-	// TODO : Should nodes be added to the clusters here ?
+	// TODO : Only works for the first layer of cluster for now
 	m_Clusters.push_back(std::vector<Cluster>(55, Cluster(1, 10, 8)));
+
+	int l_LengthCpt = 0;
+	int l_WidthCpt = 0;
+	std::for_each(m_Clusters[in_Level-1].begin()->Nodes.begin(), m_Clusters[in_Level-1].begin()->Nodes.end(), 
+		[&l_LengthCpt, &l_WidthCpt, this](const Node & in_Node)
+	{
+		//m_Clusters[0].begin()->;
+	});
 }
 
 void Navigator::BuildEntrances(const Cluster & in_Cluster1, const Cluster & in_Cluster2, const int in_Level, const Adjacency in_Adjacency)
@@ -125,7 +197,7 @@ void Navigator::BuildEntrances(const Cluster & in_Cluster1, const Cluster & in_C
 
 	std::vector<std::pair<Node, Node>> l_Gates;
 
-	// Describe th relationship between Cluster1 & Cluster2
+	// Describe the relationship between Cluster1 & Cluster2
 	switch (in_Adjacency)
 	{
 		case Above:
@@ -200,19 +272,12 @@ void Navigator::BuildGraph()
 		auto l_Cluster1 = std::find(m_Clusters[1].begin(), m_Clusters[1].end(), in_Entrance.Clusters.first);
 		auto l_Cluster2 = std::find(m_Clusters[1].begin(), m_Clusters[1].end(), in_Entrance.Clusters.second);
 
-		std::for_each(in_Entrance.Gates.begin(), in_Entrance.Gates.end(), [&l_Cluster1, &l_Cluster2, this](std::pair<Node,Node> in_Gate)
+		for(auto l_GatesIt = in_Entrance.Gates.begin(); l_GatesIt != in_Entrance.Gates.end(); ++l_GatesIt)
 		{
-			l_Cluster1->Nodes.push_back(in_Gate.first);
-			l_Cluster2->Nodes.push_back(in_Gate.second);
-
-			m_Nodes[1].push_back(in_Gate.first);
-			m_Nodes[1].push_back(in_Gate.second);
-
-			l_Cluster1->Edges.push_back(Edge(in_Gate.first, in_Gate.second, 1, 1.0, Inter));
-			l_Cluster1->Edges.push_back(Edge(in_Gate.second, in_Gate.first, 1, 1.0, Inter));
-
-			m_Edges[1].push_back(Edge(in_Gate.first, in_Gate.second, 1, 1.0, Inter));
-		});
+			// High level transitions always cost 1
+			m_Graphs[1][l_GatesIt->first][l_GatesIt->second] = 1.0;
+			m_Graphs[1][l_GatesIt->second][l_GatesIt->first] = 1.0;
+		}
 	});
 	AddIntraEdgesToClusters(1);
 }
@@ -234,7 +299,7 @@ void Navigator::AddIntraEdgesToClusters(const int in_Level)
 
 				if(l_Distance < std::numeric_limits<double>::infinity())
 				{
-					in_Cluster.Edges.push_back(Navigator::Edge(*l_It1, *l_It2, in_Level, l_Distance, Intra));
+					in_Cluster.LocalGraph[*l_It1][*l_It2] = l_Distance;
 				}
 			}
 			++l_It1;
@@ -262,12 +327,12 @@ void Navigator::ConnectToBorder(const Navigator::Node & in_Node, Cluster & in_Cl
 
 		if(l_Distance < std::numeric_limits<double>::infinity())
 		{
-			in_Cluster.Edges.push_back(Edge(in_Node, *l_It, in_Cluster.Level, l_Distance, Intra));
+			in_Cluster.LocalGraph[in_Node][*l_It] = l_Distance;
 		}
 	}
 }
 
-void Navigator::InsertNode(Navigator::Node && in_Node, const int in_Level)
+void Navigator::InsertNode(Navigator::Node & in_Node, const int in_Level)
 {
 	for(int i = 1; i <= in_Level; ++i)
 	{
@@ -278,11 +343,13 @@ void Navigator::InsertNode(Navigator::Node && in_Node, const int in_Level)
 				break;
 		}
 
-		ConnectToBorder(in_Node, *l_It);
+		if(l_It != m_Clusters[in_Level].end())
+			ConnectToBorder(in_Node, *l_It);
+		// TODO : Else ?
 	}
 }
 
-double Navigator::SearchForDistance(const Node & in_Node1, const Node & in_Node2, const Cluster & in_Cluster) const
+double Navigator::SearchForDistance(const Node & in_Node1, const Node & in_Node2, const Cluster & in_Cluster)
 {
 	// Can't find the distance if one of the given nodes is a block
 	if(in_Node1.Height || in_Node2.Height)
@@ -294,12 +361,16 @@ double Navigator::SearchForDistance(const Node & in_Node1, const Node & in_Node2
 // TODO : Vector2 or Node for args ?
 Vector2 Navigator::GetBestDirection(const Vector2 & in_Start, const Vector2 & in_Goal, const int in_Level)
 {
-	InsertNode(Node(in_Level, 0, in_Start), in_Level);
-	InsertNode(Node(in_Level, 0, in_Goal), in_Level);
+	Node l_StartNode = Node(in_Level, 0, in_Start);
+	Node l_EndNode = Node(in_Level, 0, in_Goal);
 
-}
+	InsertNode(l_StartNode, in_Level);
+	InsertNode(l_EndNode, in_Level);
 
-void Navigator::UpdateHeuristic()
-{
+	if(AStar(l_StartNode, l_EndNode, in_Level, EuclideanDistance()) < std::numeric_limits<double>::infinity())
+	{
 
+	}
+
+	// TODO : Smooth/Refine path ?
 }

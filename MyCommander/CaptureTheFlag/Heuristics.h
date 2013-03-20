@@ -5,11 +5,13 @@
 
 class IHeuristic
 {
+public:
 	virtual double operator()(const Navigator::Node & in_Start, const Navigator::Node & in_Goal) const = 0;
 };
 
 class EuclideanDistance : public IHeuristic
 {
+public:
 	double operator()(const Navigator::Node & in_Start, const Navigator::Node & in_Goal) const
 	{
 		return sqrt(pow(in_Start.Position.x - in_Goal.Position.x, 2) + pow(in_Start.Position.y - in_Goal.Position.y, 2));
@@ -18,6 +20,7 @@ class EuclideanDistance : public IHeuristic
 
 class TrivialHeuristic : public IHeuristic
 {
+public:
 	double operator()(const Navigator::Node & in_Start, const Navigator::Node & in_Goal) const
 	{
 		return 0.0;

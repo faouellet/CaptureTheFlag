@@ -1,6 +1,7 @@
 #ifndef NAVIGATOR_H
 #define NAVIGATOR_H
 
+#include <map>
 #include <memory>
 #include <vector>
 #include <utility>
@@ -35,25 +36,20 @@ public:
 		{
 			return Level == in_Node.Level && Height == in_Node.Height && Position == in_Node.Position;
 		}
+
+		bool operator!=(const Node & in_Node) const
+		{
+			return !(*this == in_Node);
+		}
+
+		bool operator<(const Node & in_Node) const
+		{
+			return Level < in_Node.Level && Height < in_Node.Height && Position < in_Node.Position;
+		}
 	};
 
 private:
-	enum EdgeType { Intra, Inter };
 	enum Adjacency { Above, Below, Left, Right };
-
-	struct Edge
-	{
-		int Level;
-		double Weight;
-		EdgeType Type;
-		std::pair<Node, Node> Nodes;
-
-		Edge(const Node & in_Node1 = Node(), const Node & in_Node2 = Node(), const int in_Level = 0, 
-			const double in_Weight = 0.f, EdgeType in_Type = Intra) : 
-		Nodes(std::make_pair(in_Node1, in_Node2)), Level(in_Level), Weight(in_Weight), Type(in_Type) { }
-
-		Edge(Edge && in_Edge) : Level(std::move(in_Edge.Level)), Weight(in_Edge.Weight), Type(in_Edge.Type), Nodes(in_Edge.Nodes) { }
-	};
 
 	struct Cluster
 	{
@@ -61,14 +57,20 @@ private:
 		int Length;
 		int Width;
 		std::vector<Node> Nodes;
-		std::vector<Edge> Edges;
+		std::map<Node, std::map<Node, double>> LocalGraph;
 
 		Cluster(const int in_Level = 0, const int in_Length = 1, const int in_Width = 1, 
-			const std::vector<Node> & in_Nodes = std::vector<Node>(), const std::vector<Edge> & in_Edges = std::vector<Edge>()) :
-		Level(in_Level), Length(in_Length), Width(in_Width), Nodes(in_Nodes), Edges(in_Edges) { }
+			const std::vector<Node> & in_Nodes = std::vector<Node>()) :
+		Level(in_Level), Length(in_Length), Width(in_Width), Nodes(in_Nodes) { }
 
 		Cluster(Cluster && in_Cluster) : Level(std::move(in_Cluster.Level)), Length(std::move(in_Cluster.Length)),
-			Width(std::move(in_Cluster.Width)),	Nodes(std::move(in_Cluster.Nodes)), Edges(std::move(in_Cluster.Edges)) { }
+			Width(std::move(in_Cluster.Width)), Nodes(std::move(in_Cluster.Nodes)), LocalGraph(std::move(in_Cluster.LocalGraph)) { }
+
+		bool operator==(const Cluster & in_Cluster) const
+		{
+			return Level == in_Cluster.Level && Length == in_Cluster.Length && Width == in_Cluster.Width
+				&& Nodes == in_Cluster.Nodes && LocalGraph == in_Cluster.LocalGraph;
+		}
 	};
 
 	struct Entrance
@@ -94,8 +96,8 @@ private:
 	int m_MaxEntranceWidth;
 	std::vector<std::vector<Cluster>> m_Clusters;
 	std::vector<std::vector<Entrance>> m_Entrances;
-	std::vector<std::vector<Node>> m_Nodes;
-	std::vector<std::vector<Edge>> m_Edges;
+	std::vector<std::map<Node, std::map<Node, double>>> m_Graphs;
+	std::map<Node, std::map<Node, std::vector<Node>>> m_Paths;
 
 public:
 	Navigator(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width, const int in_MaxEntranceWidth = 3);
@@ -103,7 +105,7 @@ public:
 	Vector2 GetBestDirection(const Vector2 & in_Start, const Vector2 & in_Goal, const int in_Level);
 
 private:
-	double AStar(const Node & in_Start, const Node & in_Goal, const int in_Level, const IHeuristic & in_Heuristic) const;
+	double AStar(const Node & in_Start, const Node & in_Goal, const int in_Level, const IHeuristic & in_Heuristic);
 
 	// Offline processing
 
@@ -120,11 +122,8 @@ private:
 	// Online processing
 
 	void ConnectToBorder(const Node & in_Node, Cluster & in_Cluster);
-	void InsertNode(Node && in_Node, const int in_Level);
-	double SearchForDistance(const Node & in_Node1, const Node & in_Node2, const Cluster & in_Cluster) const;
-	// HierachichalSearch ?= GetBestDirection
-
-	void UpdateHeuristic();
+	void InsertNode(Node & in_Node, const int in_Level);
+	double SearchForDistance(const Node & in_Node1, const Node & in_Node2, const Cluster & in_Cluster);
 
 };
 

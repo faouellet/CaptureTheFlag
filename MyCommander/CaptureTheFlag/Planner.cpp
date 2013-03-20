@@ -120,6 +120,8 @@ bool Planner::QValuesFromString(const std::string in_Content)
 		l_It;
 		// m_QValues[std::make_pair<Actions, States>()] = ;
 	}
+
+	return true;
 }
 
 Planner::Actions Planner::GetBestAction(const State in_State)

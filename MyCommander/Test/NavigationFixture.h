@@ -20,6 +20,7 @@ struct NavigationFixture
 	static const double MAX_SEARCH_TIME;
 
 	Navigator m_Nav;
+
 	std::unique_ptr<LevelInfo> m_SmallLevel;
 	std::unique_ptr<LevelInfo> m_MediumLevel;
 	std::unique_ptr<LevelInfo> m_LargeLevel;

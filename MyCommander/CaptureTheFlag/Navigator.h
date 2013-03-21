@@ -100,9 +100,10 @@ private:
 	std::map<Node, std::map<Node, std::vector<Node>>> m_Paths;
 
 public:
-	Navigator(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width, const int in_MaxEntranceWidth = 3);
+	Navigator() { }
+	void Init(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width, const int in_MaxEntranceWidth = 3);
 
-	Vector2 GetBestDirection(const Vector2 & in_Start, const Vector2 & in_Goal, const int in_Level);
+	Vector2 GetBestDirection(const Vector2 & in_Start, const Vector2 & in_Goal);
 
 private:
 	double AStar(const Node & in_Start, const Node & in_Goal, const int in_Level, const IHeuristic & in_Heuristic);

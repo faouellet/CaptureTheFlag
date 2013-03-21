@@ -13,7 +13,7 @@ struct PlanningFixture
 	Planner m_Plan;
 	Planner::State m_CurrentState;
 	Planner::State m_PreviousState;
-	Planner::Action m_CurrentAction;
+	Planner::Actions m_CurrentAction;
 
 	PlanningFixture()
 	{
@@ -27,7 +27,7 @@ struct PlanningFixture
 		for(int i = 0; i < 100; ++i)
 		{
 			l_Start = boost::chrono::high_resolution_clock::now();
-			m_Plan.GetNextAction(m_CurrentAction, m_CurrentState, m_PreviousState);
+			m_Plan.GetNextAction(n, m_CurrentState);
 			l_Durations[i] = boost::chrono::high_resolution_clock::now() - l_Start;
 		}
 

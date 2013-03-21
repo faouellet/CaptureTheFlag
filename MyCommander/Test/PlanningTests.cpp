@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE( LoadWriteTest )
 	Planner::State l_State2 = 0;
 	Planner::State l_State3 = 31;
 	
-	std::map<Planner::State, Planner::Action> l_Plan;
+	std::map<Planner::State, Planner::Actions> l_Plan;
 	l_Plan[l_State1] = Planner::Defend;
 	l_Plan[l_State2] = Planner::KillFlagCarrier;
 	l_Plan[l_State3] = Planner::SupportFlagCarrier;
@@ -45,14 +45,14 @@ BOOST_AUTO_TEST_CASE( LoadWriteTest )
 
 BOOST_AUTO_TEST_CASE( QLearningCorrectnessTest )
 {
-	Planner::Action l_GoodAction = Planner::ReturnToBase;
-	std::vector<Planner::Action> l_Actions(500);
+	Planner::Actions l_GoodAction = Planner::ReturnToBase;
+	std::vector<Planner::Actions> l_Actions(500);
 	for(int i = 0; i < 500; ++i)
 	{
-		l_Actions[i] = m_Plan.GetNextAction(m_CurrentAction, m_CurrentState, m_PreviousState);
+		l_Actions[i] = m_Plan.GetNextAction(, m_CurrentState);
 	}
 
-	int l_Count = std::count_if(l_Actions.begin(), l_Actions.end(), [&l_GoodAction](const Planner::Action in_Action)
+	int l_Count = std::count_if(l_Actions.begin(), l_Actions.end(), [&l_GoodAction](const Planner::Actions in_Action)
 	{
 		return in_Action == l_GoodAction;
 	});

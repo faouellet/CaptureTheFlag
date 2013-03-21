@@ -12,11 +12,16 @@
 */
 BOOST_FIXTURE_TEST_SUITE( NavigationTestSuite, NavigationFixture )
 
-BOOST_AUTO_TEST_CASE( CorrectnessTest )
-{
-	// Verification that the Navigator computes the path as the one in this example:
-	// http://jagedev.blogspot.ca/2011/08/hierarchical-pathfinding-explained_28.html
+// The correctness tests aim to reproduce the path and the clusters formed in the following example:
+// http://jagedev.blogspot.ca/2011/08/hierarchical-pathfinding-explained_28.html
 
+BOOST_AUTO_TEST_CASE( ClusterCorrectnessTest )
+{
+	BOOST_REQUIRE(true);
+};
+
+BOOST_AUTO_TEST_CASE( PathCorrectnessTest )
+{
 	std::vector<Vector2> l_CompletePath;
 	l_CompletePath.push_back(m_StartPos);
 	l_CompletePath.push_back(Vector2(1,6));
@@ -38,7 +43,7 @@ BOOST_AUTO_TEST_CASE( CorrectnessTest )
 	l_CompletePath.push_back(Vector2(2,1));
 	l_CompletePath.push_back(m_GoalPos);
 	
-	m_Nav.Init(m_SmallLevel->blockHeights, m_SmallLevel->width);
+	m_Nav.Init(m_SmallLevel->blockHeights, m_SmallLevel->height, m_SmallLevel->width, 4);
 
 	for(unsigned i = 0; i < l_CompletePath.size() - 1; ++i)
 	{
@@ -48,19 +53,19 @@ BOOST_AUTO_TEST_CASE( CorrectnessTest )
 
 BOOST_AUTO_TEST_CASE( SmallGraphPerformanceTest )
 {
-	m_Nav.Init(m_SmallLevel->blockHeights, m_SmallLevel->width);
+	m_Nav.Init(m_SmallLevel->blockHeights, m_SmallLevel->height, m_SmallLevel->width, 4);
 	BOOST_REQUIRE(TestPerformance());
 }
 
 BOOST_AUTO_TEST_CASE( MediumGraphPerformanceTest )
 {
-	m_Nav.Init(m_MediumLevel->blockHeights, m_MediumLevel->width);
+	m_Nav.Init(m_MediumLevel->blockHeights, m_MediumLevel->height, m_MediumLevel->width);
 	BOOST_REQUIRE(TestPerformance());
 }
 
 BOOST_AUTO_TEST_CASE( LargeGraphPerformanceTest )
 {
-	m_Nav.Init(m_LargeLevel->blockHeights, m_LargeLevel->width);
+	m_Nav.Init(m_LargeLevel->blockHeights, m_LargeLevel->height, m_LargeLevel->width);
 	BOOST_REQUIRE(TestPerformance());
 }
 

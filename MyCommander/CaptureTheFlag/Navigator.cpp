@@ -7,8 +7,8 @@
 
 #include "Heuristics.h"
 
-Navigator::Navigator(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width,
-					 const int in_MaxEntranceWidth) : m_MaxEntranceWidth(in_MaxEntranceWidth) 
+void Navigator::Init(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width,
+					 const int in_MaxEntranceWidth)
 {
 	int l_X = 0, l_Y = 0;
 	std::for_each(in_Level.get(), in_Level.get() + in_Length * in_Width, [&in_Length, &l_X, &l_Y, this](const float in_Block)
@@ -27,6 +27,7 @@ Navigator::Navigator(const std::unique_ptr<float[]> & in_Level, const int in_Len
 	});
 	m_Clusters[0].begin()->Length = in_Length;
 	m_Clusters[0].begin()->Width = in_Width;
+	m_MaxEntranceWidth =in_MaxEntranceWidth;
 }
 
 double Navigator::AStar(const Node & in_Start, const Node & in_Goal, const int in_Level, const IHeuristic & in_Heuristic)
@@ -177,7 +178,7 @@ bool Navigator::Adjacent(const Cluster & in_Cluster1, const Cluster & in_Cluster
 
 void Navigator::BuildClusters(const int in_Level)
 {
-	// TODO : The levels seem to be 50x88, should confirm
+	// TODO : Find a generic way to compute cluster's length and width
 	// TODO : Only works for the first layer of cluster for now
 	m_Clusters.push_back(std::vector<Cluster>(55, Cluster(1, 10, 8)));
 
@@ -358,16 +359,16 @@ double Navigator::SearchForDistance(const Node & in_Node1, const Node & in_Node2
 	return AStar(in_Node1, in_Node2, in_Cluster.Level, TrivialHeuristic());
 }
 
-// TODO : Vector2 or Node for args ?
-Vector2 Navigator::GetBestDirection(const Vector2 & in_Start, const Vector2 & in_Goal, const int in_Level)
+Vector2 Navigator::GetBestDirection(const Vector2 & in_Start, const Vector2 & in_Goal)
 {
-	Node l_StartNode = Node(in_Level, 0, in_Start);
-	Node l_EndNode = Node(in_Level, 0, in_Goal);
+	// TODO : Do we want to scale up or no ? Because this doesn't scale
+	Node l_StartNode = Node(1, 0, in_Start);
+	Node l_EndNode = Node(1, 0, in_Goal);
 
-	InsertNode(l_StartNode, in_Level);
-	InsertNode(l_EndNode, in_Level);
+	InsertNode(l_StartNode, 1);
+	InsertNode(l_EndNode, 1);
 
-	if(AStar(l_StartNode, l_EndNode, in_Level, EuclideanDistance()) < std::numeric_limits<double>::infinity())
+	if(AStar(l_StartNode, l_EndNode, 1, EuclideanDistance()) < std::numeric_limits<double>::infinity())
 	{
 
 	}

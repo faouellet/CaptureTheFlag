@@ -75,8 +75,6 @@ Planner::State MyCommander::GetBotState(const BotInfo* in_Bot)
 
 void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInfo* in_Bot)
 {
-	Command* l_Command;
-
 	// TODO : Call the Navigator for the path
 	switch (in_Action)
 	{

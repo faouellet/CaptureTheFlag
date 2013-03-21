@@ -5,11 +5,13 @@
 
 #include "api\Commander.h"
 
+#include "Navigator.h"
 #include "Planner.h"
 
 class MyCommander : public Commander
 {
 private:
+	Navigator m_Navigator;
 	Planner m_Planner;
 
 private:

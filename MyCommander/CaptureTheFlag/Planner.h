@@ -32,14 +32,17 @@ private:
 private:
 	float m_LearningRate;
 	float m_Epsilon;
-	std::map<ActionState, float> m_Rewards;
-	std::map<ActionState, float> m_QValues;
+	static const int M_NBSTATES;
+	static const std::string M_PLANFILE;
+	std::map<ActionState, double> m_Rewards;
+	std::map<ActionState, double> m_QValues;
 	std::random_device m_RandomGenerator;
 	std::map<std::string, ActionState> m_LastOrders;
 
 public:
 	Planner() { }
-	Planner(const std::unique_ptr<GameInfo> & in_Game, const float in_LearningRate = 0.1f, const float in_Epsilon = 0.1f);
+	void Init(const std::unique_ptr<GameInfo> & in_Game, const bool in_LoadFromDisk = false, 
+		const float in_LearningRate = 0.1f, const float in_Epsilon = 0.1f);
 
 	bool LoadPlanFromDisk(const std::string & in_Filename);
 	bool WritePlanToDisk(const std::string & in_Filename);

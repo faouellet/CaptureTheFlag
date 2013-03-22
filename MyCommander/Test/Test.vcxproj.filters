@@ -76,7 +76,7 @@
     <None Include="..\CaptureTheFlag\Server.bat">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Plan.json">
+    <None Include="QValues.json">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

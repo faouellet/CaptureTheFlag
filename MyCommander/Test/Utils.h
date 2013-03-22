@@ -24,7 +24,7 @@ inline double ComputeMean(std::vector<double>& in_Durations)
 
 inline std::vector<double> ToVectorOfDouble(const std::vector<boost::chrono::duration<double, boost::milli>> & l_Durations)
 {
-	std::vector<double> l_Times;
+	std::vector<double> l_Times(100);
 	std::transform(l_Durations.begin(), l_Durations.end(), l_Times.begin(), 
 		[](const boost::chrono::duration<double, boost::milli>& in_Duration)
 	{

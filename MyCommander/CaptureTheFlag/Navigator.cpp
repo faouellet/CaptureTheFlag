@@ -374,4 +374,6 @@ Vector2 Navigator::GetBestDirection(const Vector2 & in_Start, const Vector2 & in
 	}
 
 	// TODO : Smooth/Refine path ?
+
+	return in_Goal;
 }

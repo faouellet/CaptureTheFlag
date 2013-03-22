@@ -8,6 +8,8 @@
 
 REGISTER_COMMANDER(MyCommander);
 
+const std::string MyCommander::M_QVALUESFILE = "QValues.json";
+
 std::string MyCommander::getName() const
 {
     return "MyCommander";
@@ -15,14 +17,17 @@ std::string MyCommander::getName() const
 
 void MyCommander::initialize()
 {
-    // TODO : Initialize the Navigator
-
-	m_Planner.LoadPlanFromDisk("Plan.json");
+	m_Navigator.Init(m_level->blockHeights, m_level->height, m_level->width);
+#ifdef _TRAIN
+	m_Planner.Init(m_game, false);
+#else
+	m_Planner.Init(m_game, true);
+#endif
 }
 
 void MyCommander::tick()
 {
-	for (size_t i=0; i< m_game->bots_available.size(); ++i)
+	for (size_t i = 0; i< m_game->bots_available.size(); ++i)
     {
 		auto l_Bot = m_game->bots_available[i];
 		Planner::State l_CurrentState = GetBotState(l_Bot);
@@ -35,7 +40,7 @@ void MyCommander::tick()
 
 void MyCommander::shutdown() 
 {
-	m_Planner.WritePlanToDisk("Plan.json");
+	m_Planner.WritePlanToDisk(M_QVALUESFILE);
 }
 
 Planner::State MyCommander::GetBotState(const BotInfo* in_Bot)

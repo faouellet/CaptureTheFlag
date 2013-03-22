@@ -52,7 +52,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0501;WIN32;BOOST_ALL_NO_LIB=1;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0501;WIN32;BOOST_ALL_NO_LIB=1;_DEBUG;_WINDOWS;_TRAIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\CaptureTheFlag\Debug;..\CaptureTheFlag;..\dependencies\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -106,7 +106,7 @@
     <None Include="LargeLevel.json" />
     <None Include="MediumLevel.json" />
     <None Include="Perf.txt" />
-    <None Include="Plan.json" />
+    <None Include="QValues.json" />
     <None Include="SmallGameTick.json" />
     <None Include="SmallLevel.json" />
   </ItemGroup>

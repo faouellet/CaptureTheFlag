@@ -11,6 +11,7 @@
 class MyCommander : public Commander
 {
 private:
+	static const std::string M_QVALUESFILE;
 	Navigator m_Navigator;
 	Planner m_Planner;
 

@@ -21,35 +21,41 @@ BOOST_AUTO_TEST_CASE( LoadWriteTest )
 {
 	std::string l_TestStr = "Test.json";
 
-	Planner::State l_State1 = 5;
-	Planner::State l_State2 = 0;
-	Planner::State l_State3 = 31;
-	
-	std::map<Planner::State, Planner::Actions> l_Plan;
-	l_Plan[l_State1] = Planner::Defend;
-	l_Plan[l_State2] = Planner::KillFlagCarrier;
-	l_Plan[l_State3] = Planner::SupportFlagCarrier;
+	std::map<std::pair<Planner::Actions, Planner::State>, double> l_QValues;
+	l_QValues[std::make_pair(Planner::SupportFlagCarrier, M_SUPPORTSTATE)] = 5.498; 
+	l_QValues[std::make_pair(Planner::ReturnToBase, M_SCORESTATE)] = 3.14159;
+
+	m_Plan.SetQValues(l_QValues);
 
 	BOOST_REQUIRE(m_Plan.WritePlanToDisk(l_TestStr));
 
-	std::string l_PlanStr = ReadAllFile("Plan.json");
+	std::string l_PlanStr = ReadAllFile("QValues.json");
 	std::string l_TestPlanStr = ReadAllFile(l_TestStr);
 	BOOST_REQUIRE(l_PlanStr == l_TestPlanStr);
 
 	BOOST_REQUIRE(m_Plan.LoadPlanFromDisk(l_TestStr));
 
-	BOOST_REQUIRE(m_Plan.GetNextAction(Planner::Defend, l_State1, l_State1) == Planner::Defend);
-	BOOST_REQUIRE(m_Plan.GetNextAction(Planner::KillFlagCarrier, l_State2, l_State2) == Planner::KillFlagCarrier);
-	BOOST_REQUIRE(m_Plan.GetNextAction(Planner::SupportFlagCarrier, l_State3, l_State3) == Planner::SupportFlagCarrier);
+	m_Plan.Init(m_GameTickInfo, false, 0.1, -2.0);
+
+	BOOST_REQUIRE(m_Plan.GetNextAction("Blue0", M_SUPPORTSTATE) == Planner::SupportFlagCarrier);
+	BOOST_REQUIRE(m_Plan.GetNextAction("Blue1", M_SCORESTATE) == Planner::ReturnToBase);
 }
 
-BOOST_AUTO_TEST_CASE( QLearningCorrectnessTest )
+// The correctness tests verify that the Q-Learning algorithm is correctly working.
+// This means we have to go into _TRAIN mode.
+
+BOOST_AUTO_TEST_CASE( QLearningInitCorrectnessTest )
 {
-	Planner::Actions l_GoodAction = Planner::ReturnToBase;
+	m_Plan.Init(m_GameInitInfo);
+	Planner::Actions l_GoodAction = Planner::GetEnemyFlag;
 	std::vector<Planner::Actions> l_Actions(500);
+
+	Planner::State l_State = GetBotState(m_GameInitInfo, m_GameInitInfo->bots["Blue0"]);
+	BOOST_REQUIRE(l_State == M_INITSTATE);
+
 	for(int i = 0; i < 500; ++i)
 	{
-		l_Actions[i] = m_Plan.GetNextAction(, m_CurrentState);
+		l_Actions[i] = m_Plan.GetNextAction("Blue0", l_State);
 	}
 
 	int l_Count = std::count_if(l_Actions.begin(), l_Actions.end(), [&l_GoodAction](const Planner::Actions in_Action)
@@ -58,8 +64,30 @@ BOOST_AUTO_TEST_CASE( QLearningCorrectnessTest )
 	});
 	float l_Ratio = static_cast<float>(l_Count) / l_Actions.size();
 
-	BOOST_REQUIRE(0.09f < l_Ratio && l_Ratio < 0.11f);
-	BOOST_REQUIRE(true);
+	// BOOST_REQUIRE(0.09f < l_Ratio && l_Ratio < 0.11f);
+}
+
+BOOST_AUTO_TEST_CASE( QLearningTickCorrectnessTest )
+{
+	m_Plan.Init(m_GameTickInfo);
+	Planner::Actions l_GoodAction = Planner::ReturnToBase;
+	std::vector<Planner::Actions> l_Actions(500);
+
+	Planner::State l_State = GetBotState(m_GameTickInfo, m_GameTickInfo->bots["Blue1"]);
+	BOOST_REQUIRE(l_State == M_SCORESTATE);
+
+	for(int i = 0; i < 500; ++i)
+	{
+		l_Actions[i] = m_Plan.GetNextAction("Blue1", l_State);
+	}
+
+	int l_Count = std::count_if(l_Actions.begin(), l_Actions.end(), [&l_GoodAction](const Planner::Actions in_Action)
+	{
+		return in_Action == l_GoodAction;
+	});
+	float l_Ratio = static_cast<float>(l_Count) / l_Actions.size();
+
+	// BOOST_REQUIRE(0.09f < l_Ratio && l_Ratio < 0.11f);
 }
 
 BOOST_AUTO_TEST_CASE( QLearningPerformanceTest )

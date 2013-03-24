@@ -7,27 +7,60 @@
 
 #include "Heuristics.h"
 
+const int Navigator::M_MAXCLUSTERSIZE = 20;
+
 void Navigator::Init(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width,
 					 const int in_MaxEntranceWidth)
 {
 	int l_X = 0, l_Y = 0;
+	m_Clusters.push_back(std::vector<Cluster>(1, Cluster()));
 	std::for_each(in_Level.get(), in_Level.get() + in_Length * in_Width, [&in_Length, &l_X, &l_Y, this](const float in_Block)
 	{
 		// The first level cluster is in fact the whole map
 		Node l_Node(0, static_cast<int>(in_Block), Vector2(static_cast<float>(l_X), static_cast<float>(l_Y)));
 		m_Clusters[0].begin()->Nodes.push_back(l_Node);
-		// TODO : Construct the low level graph and the low level cluster local graph
-		// m_Graphs[0].insert(l_Node);
-
-		if(l_X == in_Length)
+		
+		if(l_X < in_Length - 1)
+		{
+			++l_X;
+		}
+		else
 		{
 			l_X = 0;
 			++l_Y;
 		}
 	});
+
+	// Construct the low level cluster local graph
+	// TODO : for each instead ?
+	for(int i  = 0; i < in_Width - 1; ++i)
+	{
+		for(int j = 0; j < in_Length - 1; ++j)
+		{
+			// Link the right node
+			m_Clusters[0].begin()->LocalGraph[m_Clusters[0].begin()->Nodes[j + i * in_Width]][m_Clusters[0].begin()->Nodes[j + 1 + i * in_Width]] = 1.0;
+			m_Clusters[0].begin()->LocalGraph[m_Clusters[0].begin()->Nodes[j + 1 + i * in_Width]][m_Clusters[0].begin()->Nodes[j + i * in_Width]] = 1.0;
+
+			// Link the down-right node
+			m_Clusters[0].begin()->LocalGraph[m_Clusters[0].begin()->Nodes[j + i * in_Width]][m_Clusters[0].begin()->Nodes[(j+1) + (i+1) * in_Width]] = 1.0;
+			m_Clusters[0].begin()->LocalGraph[m_Clusters[0].begin()->Nodes[(j+1) + (i+1) * in_Width]][m_Clusters[0].begin()->Nodes[j + i * in_Width]] = 1.0;
+			
+			// Link the down node
+			m_Clusters[0].begin()->LocalGraph[m_Clusters[0].begin()->Nodes[j + i * in_Width]][m_Clusters[0].begin()->Nodes[j + (i+1) * in_Width]] = 1.0;
+			m_Clusters[0].begin()->LocalGraph[m_Clusters[0].begin()->Nodes[j + (i+1) * in_Width]][m_Clusters[0].begin()->Nodes[j + i * in_Width]] = 1.0;
+			
+			// Link the down-left node
+			m_Clusters[0].begin()->LocalGraph[m_Clusters[0].begin()->Nodes[j + i * in_Width]][m_Clusters[0].begin()->Nodes[(j-1) + (i+1) * in_Width]] = 1.0;
+			m_Clusters[0].begin()->LocalGraph[m_Clusters[0].begin()->Nodes[(j-1) + (i+1) * in_Width]][m_Clusters[0].begin()->Nodes[j + i * in_Width]] = 1.0;
+		}
+	}
+		
+	m_Graphs.push_back(m_Clusters[0].begin()->LocalGraph);
 	m_Clusters[0].begin()->Length = in_Length;
 	m_Clusters[0].begin()->Width = in_Width;
-	m_MaxEntranceWidth =in_MaxEntranceWidth;
+	m_MaxEntranceWidth = in_MaxEntranceWidth;
+
+	Preprocess();
 }
 
 double Navigator::AStar(const Node & in_Start, const Node & in_Goal, const int in_Level, const IHeuristic & in_Heuristic)
@@ -108,7 +141,7 @@ double Navigator::AStar(const Node & in_Start, const Node & in_Goal, const int i
 					{
 						l_Closed.erase(l_ClosedIt);
 						break;
-					}					
+					}
 				}
 			}
 			
@@ -138,7 +171,8 @@ void Navigator::AbstractMaze()
 			++l_It2;
 		}
 		++l_It1;
-		l_It2 = l_It1 + 1;
+		if(l_It1 != l_End)
+			l_It2 = l_It1 + 1;
 	}
 }
 
@@ -149,25 +183,29 @@ bool Navigator::Adjacent(const Cluster & in_Cluster1, const Cluster & in_Cluster
 	bool l_Ok = false;
  
 	// Cluster1 to the right of Cluster2 ?
-	if(in_Cluster1.Nodes[0].Position.x == in_Cluster2.Nodes[in_Cluster2.Length].Position.x + 1)
+	if(in_Cluster1.Nodes[0].Position.x == in_Cluster2.Nodes[in_Cluster2.Length-1].Position.x+1
+		&& in_Cluster1.Nodes[0].Position.y == in_Cluster2.Nodes[in_Cluster2.Length-1].Position.y)
 	{
 		l_Ok = true;
 		out_Adjacency = Right;
 	}
 	// Cluster1 below Cluster2 ?
-	else if(in_Cluster1.Nodes[0].Position.y == in_Cluster2.Nodes[in_Cluster2.Length * in_Cluster2.Width].Position.y - 1)
+	else if(in_Cluster1.Nodes[0].Position.y == in_Cluster2.Nodes[(in_Cluster2.Length-1)*in_Cluster2.Width].Position.y+1
+		&& in_Cluster1.Nodes[0].Position.x == in_Cluster2.Nodes[(in_Cluster2.Length-1)*in_Cluster2.Width].Position.x)
 	{
 		l_Ok = true;
 		out_Adjacency = Below;
 	}
 	// Cluster1 to left of Cluster2 ?
-	else if(in_Cluster1.Nodes[in_Cluster1.Length].Position.x == in_Cluster2.Nodes[0].Position.x - 1)
+	else if(in_Cluster1.Nodes[in_Cluster1.Length-1].Position.x == in_Cluster2.Nodes[0].Position.x-1
+		&& in_Cluster1.Nodes[in_Cluster1.Length-1].Position.y == in_Cluster2.Nodes[0].Position.y)
 	{
 		l_Ok = true;
 		out_Adjacency = Left;
 	}
 	// Cluster1 above Cluster2 ?
-	else if(in_Cluster1.Nodes[in_Cluster1.Length * in_Cluster1.Width].Position.y == in_Cluster2.Nodes[0].Position.y + 1)
+	else if(in_Cluster1.Nodes[(in_Cluster1.Length-1)*in_Cluster1.Width].Position.y == in_Cluster2.Nodes[0].Position.y-1
+		&& in_Cluster1.Nodes[(in_Cluster1.Length-1)*in_Cluster1.Width].Position.x == in_Cluster2.Nodes[0].Position.x)
 	{
 		l_Ok = true;
 		out_Adjacency = Above;
@@ -176,19 +214,56 @@ bool Navigator::Adjacent(const Cluster & in_Cluster1, const Cluster & in_Cluster
 	return l_Ok;
 }
 
+int Navigator::ClusterSize(const int in_Size) const
+{
+	int l_ClusterSize = M_MAXCLUSTERSIZE;
+	while(l_ClusterSize > 0)
+	{
+		if(in_Size % l_ClusterSize || l_ClusterSize == in_Size)
+			--l_ClusterSize;
+		else
+			break;
+	}
+
+	return l_ClusterSize;
+}
+
+// TODO : Only works for the first layer of clusters for now
 void Navigator::BuildClusters(const int in_Level)
 {
-	// TODO : Find a generic way to compute cluster's length and width
-	// TODO : Only works for the first layer of cluster for now
-	m_Clusters.push_back(std::vector<Cluster>(55, Cluster(1, 10, 8)));
+	int l_Length = m_Clusters[0].begin()->Length;
+	int l_Width = m_Clusters[0].begin()->Width;
 
-	int l_LengthCpt = 0;
-	int l_WidthCpt = 0;
-	std::for_each(m_Clusters[in_Level-1].begin()->Nodes.begin(), m_Clusters[in_Level-1].begin()->Nodes.end(), 
-		[&l_LengthCpt, &l_WidthCpt, this](const Node & in_Node)
+	int l_ClusterLength = ClusterSize(l_Length);
+	int l_ClusterWidth = ClusterSize(l_Width);
+
+	m_Clusters.push_back(std::vector<Cluster>(
+		(l_Length / l_ClusterLength) * (l_Width / l_ClusterWidth),
+		Cluster(1, l_ClusterLength, l_ClusterWidth)));
+	m_Entrances.push_back(std::vector<Entrance>());
+
+	int l_LengthOffset = 0;
+	int l_WidthOffset = 0;
+
+	for(auto l_It = m_Clusters[in_Level].begin(); l_It != m_Clusters[in_Level].end(); ++l_It)
 	{
-		//m_Clusters[0].begin()->;
-	});
+		for(int i = l_WidthOffset; i < l_ClusterWidth + l_WidthOffset; ++i)
+		{
+			for(int j = l_LengthOffset; j < l_ClusterLength + l_LengthOffset; ++j)
+			{
+				l_It->Nodes.push_back(m_Clusters[in_Level - 1].begin()->Nodes[j + (i * l_Width)]);
+			}
+		}
+		if(l_LengthOffset + l_ClusterLength < l_Length)
+		{
+			l_LengthOffset += l_ClusterLength;	
+		}
+		else
+		{
+			l_LengthOffset = 0;
+			l_WidthOffset += l_ClusterWidth;
+		}
+	}
 }
 
 void Navigator::BuildEntrances(const Cluster & in_Cluster1, const Cluster & in_Cluster2, const int in_Level, const Adjacency in_Adjacency)
@@ -217,56 +292,85 @@ void Navigator::BuildEntrances(const Cluster & in_Cluster1, const Cluster & in_C
 			break;
 	}
 
-	m_Entrances[in_Level].push_back(Entrance(in_Cluster1, in_Cluster2, l_Gates));
+	m_Entrances[in_Level-1].push_back(Entrance(in_Cluster1, in_Cluster2, l_Gates));
 }
 
 void Navigator::BuildSideEntrances(const Cluster & in_Cluster1, const Cluster & in_Cluster2, std::vector<std::pair<Node, Node>> & out_Gates)
 {
-	int l_OpenSpaces = 0;
-	int l_LastCutOff = 0;
+	std::vector<std::vector<std::pair<Node, Node>>> l_PotentialGates(in_Cluster1.Width);
+	int j = 0;
 
 	for(int i = 0; i < in_Cluster1.Width; ++i)
 	{
-		if(in_Cluster1.Nodes[in_Cluster1.Length * (in_Cluster1.Width * i) - 1].Height 
-			&& in_Cluster2.Nodes[in_Cluster2.Width * i].Height)
+		if(in_Cluster1.Nodes[in_Cluster1.Length + (in_Cluster1.Width * i) - 1].Height 
+			|| in_Cluster2.Nodes[in_Cluster2.Width * i].Height)
 		{
-			if(++l_OpenSpaces == m_MaxEntranceWidth)
-			{
-				out_Gates.push_back(std::make_pair<Node, Node>(
-					in_Cluster1.Nodes[in_Cluster1.Length * (in_Cluster2.Width * ((i + l_LastCutOff) / 2)) - 1],
-					in_Cluster2.Nodes[in_Cluster2.Width * ((i + l_LastCutOff) / 2)]
-					));
-				l_OpenSpaces = 0;
-				l_LastCutOff = i;
-			}
+			++j;
+		}
+		else
+		{
+			l_PotentialGates[j].push_back(std::make_pair(in_Cluster1.Nodes[in_Cluster1.Length+(in_Cluster1.Width*i)-1], in_Cluster2.Nodes[in_Cluster2.Width*i]));
+		}
+	}
+
+	for(int i = 0; i <= j; ++i)
+	{
+		if(l_PotentialGates[i].size() == m_MaxEntranceWidth)
+		{
+			out_Gates.push_back(l_PotentialGates[i][l_PotentialGates[i].size()/2]);
+		}
+		else if(l_PotentialGates[i].size() < m_MaxEntranceWidth)
+		{
+			out_Gates.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1]);
+		}
+		else // l_PotentialGates[i].size() > m_MaxEntranceWidth
+		{
+			out_Gates.push_back(l_PotentialGates[i][0]);
+			out_Gates.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1]);
 		}
 	}
 }
 
 void Navigator::BuildTopEntrances(const Cluster & in_Cluster1, const Cluster & in_Cluster2, std::vector<std::pair<Node, Node>> & out_Gates)
 {
-	int l_OpenSpaces = 0;
-	int l_LastCutOff = 0;
+	std::vector<std::vector<std::pair<Node, Node>>> l_PotentialGates(in_Cluster1.Width);
+	int j = 0;
 
 	for(int i = 0; i < in_Cluster1.Length; ++i)
 	{
 		if(in_Cluster1.Nodes[in_Cluster1.Width * (in_Cluster1.Length - 1) + i].Height 
-			&& in_Cluster2.Nodes[i].Height)
+			|| in_Cluster2.Nodes[i].Height)
 		{
-			if(++l_OpenSpaces == m_MaxEntranceWidth)
-			{
-				out_Gates.push_back(std::make_pair<Node, Node>(
-					in_Cluster1.Nodes[(in_Cluster1.Width * (in_Cluster1.Length - 1) + i + l_LastCutOff) / 2],
-					in_Cluster2.Nodes[(i + l_LastCutOff) / 2]));
-				l_OpenSpaces = 0;
-				l_LastCutOff = i;
-			}
+			++j;
+		}
+		else
+		{
+			l_PotentialGates[j].push_back(std::make_pair(in_Cluster1.Nodes[in_Cluster1.Width*(in_Cluster1.Length-1)+i], in_Cluster2.Nodes[i]));
+		}
+	}
+
+	for(int i = 0; i <= j; ++i)
+	{
+		if(l_PotentialGates[i].size() == m_MaxEntranceWidth)
+		{
+			out_Gates.push_back(l_PotentialGates[i][l_PotentialGates[i].size()/2]);
+		}
+		else if(l_PotentialGates[i].size() < m_MaxEntranceWidth)
+		{
+			out_Gates.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1]);
+		}
+		else // l_PotentialGates[i].size() > m_MaxEntranceWidth
+		{
+			out_Gates.push_back(l_PotentialGates[i][0]);
+			out_Gates.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1]);
 		}
 	}
 }
 
 void Navigator::BuildGraph()
 {
+	m_Graphs.push_back(std::map<Node, std::map<Node, double>>());
+
 	// TODO : Profile this to make sure it can be done within 5 seconds
 	std::for_each(m_Entrances[0].begin(), m_Entrances[0].end(), [this](const Entrance & in_Entrance)
 	{

@@ -93,7 +93,8 @@ private:
 	};
 
 private:
-	int m_MaxEntranceWidth;
+	static const int M_MAXCLUSTERSIZE;
+	unsigned m_MaxEntranceWidth;
 	std::vector<std::vector<Cluster>> m_Clusters;
 	std::vector<std::vector<Entrance>> m_Entrances;
 	std::vector<std::map<Node, std::map<Node, double>>> m_Graphs;
@@ -113,6 +114,7 @@ private:
 	void AbstractMaze();
 	bool Adjacent(const Cluster & in_Cluster1, const Cluster & in_Cluster2, Adjacency & out_Adjacency) const;
 	void BuildClusters(const int in_Level);
+	int ClusterSize(const int in_Size) const;
 	void BuildEntrances(const Cluster & in_Cluster1, const Cluster & in_Cluster2, const int in_Level, const Adjacency in_Adjacency);
 	void BuildSideEntrances(const Cluster & in_Cluster1, const Cluster & in_Cluster2, std::vector<std::pair<Node, Node>> & out_Gates);
 	void BuildTopEntrances(const Cluster & in_Cluster1, const Cluster & in_Cluster2, std::vector<std::pair<Node, Node>> & out_Gates);

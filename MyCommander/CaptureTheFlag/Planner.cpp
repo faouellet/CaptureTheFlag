@@ -99,7 +99,7 @@ void Planner::InitRewards()
 		if((i & AgentCarryFlag) && (i ^ TeammateCarryFlag) && (i ^ OpponentFlagAtBase) && (i ^ OpponentFlagDropped))
 			m_Rewards[std::make_pair<Actions, State>(GetEnemyFlag, i)] = 240;
 		else
-			m_Rewards[std::make_pair<Actions, State>(GetEnemyFlag, i)] = 0;
+			m_Rewards[std::make_pair<Actions, State>(GetEnemyFlag, i)] = 5;
 	}	
 
 	for(int i = 0; i < M_NBSTATES; ++i)
@@ -132,7 +132,7 @@ void Planner::InitRewards()
 
 	for(int i = 0; i < M_NBSTATES; ++i)
 	{
-		if((i ^ OpponentFlagAtBase) && (i & TeammateCarryFlag) && (i ^ AgentCarryFlag))
+		if((i & TeammateCarryFlag) && (i ^ AgentCarryFlag))
 			m_Rewards[std::make_pair<Actions, State>(SupportFlagCarrier, i)] = 80;
 		else
 			m_Rewards[std::make_pair<Actions, State>(SupportFlagCarrier, i)] = 8;
@@ -140,7 +140,7 @@ void Planner::InitRewards()
 
 	for(int i = 0; i < M_NBSTATES; ++i)
 	{
-		if((i & AgentCarryFlag) && (i ^ TeammateCarryFlag) && (i ^ OpponentFlagAtBase))
+		if((i & AgentCarryFlag))// && (i ^ TeammateCarryFlag))
 			m_Rewards[std::make_pair<Actions, State>(ReturnToBase, i)] = 320;
 		else
 			m_Rewards[std::make_pair<Actions, State>(ReturnToBase, i)] = -120;

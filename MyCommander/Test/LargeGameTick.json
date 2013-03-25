@@ -20,7 +20,16 @@
                         "Blue1",
                         "Blue2",
                         "Blue3",
-                        "Blue4"
+                        "Blue4",
+                        "Blue5",
+                        "Blue6",
+                        "Blue7",
+                        "Blue8",
+                        "Blue9",
+                        "Blue10",
+                        "Blue11",
+                        "Blue12",
+                        "Blue13"
                     ],
                     "botSpawnArea": [
                         [
@@ -286,7 +295,7 @@
                         -0.9112738966941833,
                         0.411800742149353
                     ],
-                    "state": 6,
+                    "state": 1,
                     "health": 0,
                     "seenlast": null,
                     "team": "Blue",
@@ -307,13 +316,206 @@
                         -0.9575538635253906,
                         0.2882544994354248
                     ],
-                    "state": 6,
+                    "state": 1,
                     "health": 0,
                     "seenlast": null,
                     "team": "Blue",
                     "position": [
                         47.545501708984375,
                         19.977867126464844
+                    ],
+                    "visibleEnemies": []
+                }
+            },
+			"Blue5": {
+                "__class__": "BotInfo",
+                "__value__": {
+                    "seenBy": [],
+                    "flag": null,
+                    "name": "Blue5",
+                    "facingDirection": [
+                        -0.9575538635253906,
+                        0.2882544994354248
+                    ],
+                    "state": 1,
+                    "health": 0,
+                    "seenlast": null,
+                    "team": "Blue",
+                    "position": [
+                        47.0,
+                        20.0
+                    ],
+                    "visibleEnemies": []
+                }
+            },
+			"Blue6": {
+                "__class__": "BotInfo",
+                "__value__": {
+                    "seenBy": [],
+                    "flag": null,
+                    "name": "Blue6",
+                    "facingDirection": [
+                        -0.9112738966941833,
+                        0.411800742149353
+                    ],
+                    "state": 1,
+                    "health": 0,
+                    "seenlast": null,
+                    "team": "Blue",
+                    "position": [
+                        58.0,
+                        33.0
+                    ],
+                    "visibleEnemies": []
+                }
+            },
+			"Blue7": {
+                "__class__": "BotInfo",
+                "__value__": {
+                    "seenBy": [],
+                    "flag": null,
+                    "name": "Blue7",
+                    "facingDirection": [
+                        -1.1,
+                        0.14785832166671753
+                    ],
+                    "state": 1,
+                    "health": 100,
+                    "seenlast": null,
+                    "team": "Blue",
+                    "position": [
+                        81.0,
+                        19.0
+                    ],
+                    "visibleEnemies": [
+                        "Red2",
+                        "Red1",
+                        "Red4"
+                    ]
+                }
+            },
+            "Blue8": {
+                "__class__": "BotInfo",
+                "__value__": {
+                    "seenBy": [],
+                    "flag": null,
+                    "name": "Blue8",
+                    "facingDirection": [
+                        -0.9994280338287354,
+                        0.03381979465484619
+                    ],
+                    "state": 1,
+                    "health": 0,
+                    "seenlast": null,
+                    "team": "Blue",
+                    "position": [
+                        49.0,
+                        24.0
+                    ],
+                    "visibleEnemies": []
+                }
+            },
+			"Blue9": {
+                "__class__": "BotInfo",
+                "__value__": {
+                    "seenBy": [],
+                    "flag": null,
+                    "name": "Blue9",
+                    "facingDirection": [
+                        0.9375345706939697,
+                        -0.3478919267654419
+                    ],
+                    "state": 6,
+                    "health": 0,
+                    "seenlast": 13.370665550231934,
+                    "team": "Blue",
+                    "position": [
+                        36.0,
+                        27.0
+                    ],
+                    "visibleEnemies": []
+                }
+            },
+            "Blue10": {
+                "__class__": "BotInfo",
+                "__value__": {
+                    "seenBy": [],
+                    "flag": null,
+                    "name": "Blue10",
+                    "facingDirection": [
+                        0.9123391509056091,
+                        -0.4094350337982178
+                    ],
+                    "state": 6,
+                    "health": 0,
+                    "seenlast": 0,
+                    "team": "Blue",
+                    "position": [
+                        68.0,
+                        25.0
+                    ],
+                    "visibleEnemies": []
+                }
+            },
+            "Blue11": {
+                "__class__": "BotInfo",
+                "__value__": {
+                    "seenBy": [],
+                    "flag": null,
+                    "name": "Blue11",
+                    "facingDirection": [
+                        -0.9972056150436401,
+                        0.07470673322677612
+                    ],
+                    "state": 4,
+                    "health": 0,
+                    "seenlast": 0,
+                    "team": "Blue",
+                    "position": [
+                        69.0,
+                        25.0
+                    ],
+                    "visibleEnemies": []
+                }
+            },
+            "Blue12": {
+                "__class__": "BotInfo",
+                "__value__": {
+                    "seenBy": [],
+                    "flag": null,
+                    "name": "Red0",
+                    "facingDirection": [
+                        0.9994280338287354,
+                        -0.033820152282714844
+                    ],
+                    "state": 6,
+                    "health": 0,
+                    "seenlast": 13.370665550231934,
+                    "team": "Blue",
+                    "position": [
+                        34.46906280517578,
+                        24.155515670776367
+                    ],
+                    "visibleEnemies": []
+                }
+            },
+            "Blue13": {
+                "__class__": "BotInfo",
+                "__value__": {
+                    "seenBy": [],
+                    "flag": null,
+                    "name": "Blue13",
+                    "facingDirection": [
+                        0.912505030632019,
+                        -0.4090656042098999
+                    ],
+                    "state": 6,
+                    "health": 0,
+                    "seenlast": 0,
+                    "team": "Blue",
+                    "position": [
+                        68.30572509765625,
+                        25.36515998840332
                     ],
                     "visibleEnemies": []
                 }

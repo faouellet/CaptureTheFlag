@@ -1,6 +1,7 @@
 #include "MyCommander.h"
 
 #include <cassert>
+#include <iostream>
 
 #include "api/CommanderFactory.h"
 #include "api/Commands.h"
@@ -17,7 +18,7 @@ std::string MyCommander::getName() const
 
 void MyCommander::initialize()
 {
-	m_Navigator.Init(m_level->blockHeights, m_level->height, m_level->width);
+	// m_Navigator.Init(m_level->blockHeights, m_level->height, m_level->width);
 #ifdef _TRAIN
 	m_Planner.Init(m_game, false);
 #else
@@ -85,7 +86,8 @@ void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInf
 	{
 		case Planner::GetEnemyFlag:
 		{
-			issue(new AttackCommand(in_Bot->name, m_game->enemyTeam->flagSpawnLocation, m_game->enemyTeam->flagSpawnLocation));
+			std::cout << in_Bot->name << " : GetEnemyFlag" << std::endl;
+			issue(new ChargeCommand(in_Bot->name, m_game->enemyTeam->flag->position));
 			break;
 		}
 		case Planner::WaitEnemyBase:
@@ -94,11 +96,13 @@ void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInf
 			if(sqrt(pow(m_game->enemyTeam->flagScoreLocation.x - in_Bot->position->x, 2) + 
 				pow(m_game->enemyTeam->flagScoreLocation.y - in_Bot->position->y, 2)) > 0.f)
 			{
+				std::cout << in_Bot->name << " : WaitEnemyBase/Attack" << std::endl;
 				issue(new AttackCommand(in_Bot->name, m_game->enemyTeam->flagScoreLocation, m_game->enemyTeam->flagScoreLocation));
 			}
 			else // defend/patrol
 			{
 				// TODO : Should look around for incoming enemies
+				std::cout << in_Bot->name << " : WaitEnemyBase/Defend" << std::endl;
 				issue(new DefendCommand(in_Bot->name));
 			}
 			break;
@@ -106,21 +110,36 @@ void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInf
 		case Planner::KillFlagCarrier:
 		{
 			// TODO : Choose between trying to follow or trying to intercept the flag carrier
+			std::cout << in_Bot->name << " : KillFlagCarrier" << std::endl;
 			break;
 		}
 		case Planner::Defend:
 		{
-			// TODO : Use other DefendCommand ??
-			issue(new DefendCommand(in_Bot->name));
+			if(sqrt(pow(m_game->team->flagSpawnLocation.x - in_Bot->position->x, 2) + 
+				pow(m_game->team->flagSpawnLocation.y - in_Bot->position->y, 2)) > 0.f)
+			{
+				std::cout << in_Bot->name << " : Defend/Attack" << std::endl;
+				issue(new AttackCommand(in_Bot->name, m_game->enemyTeam->flagScoreLocation, m_game->enemyTeam->flagScoreLocation));
+			}
+			else // defend/patrol
+			{
+				// TODO : Should look around for incoming enemies
+				std::cout << in_Bot->name << " : Defend/Defend" << std::endl;
+				issue(new DefendCommand(in_Bot->name));
+			}
 			break;
 		}
 		case Planner::SupportFlagCarrier:
 		{
-			issue(new AttackCommand(in_Bot->name, *(m_game->team->flag->carrier->position), m_game->team->flag->carrier->position));
+			// TODO : Better translation to low level instruction
+			std::cout << in_Bot->name << " : SupportFlagCarrier" << std::endl;
+			if(m_game->team->flag->carrier)
+				issue(new AttackCommand(in_Bot->name, m_game->team->flagScoreLocation, m_game->team->flag->carrier->position));
 			break;
 		}
 		case Planner::ReturnToBase:
 		{
+			std::cout << in_Bot->name << " : ReturnToBase" << std::endl;
 			issue(new ChargeCommand(in_Bot->name, m_game->team->flagScoreLocation));
 			break;
 		}

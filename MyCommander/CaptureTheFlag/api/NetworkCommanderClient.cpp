@@ -127,6 +127,8 @@ void NetworkCommanderClient::run()
                 std::string gameInfoJson = readLine();
                 updateCommanderGameData(gameInfoJson);
                 tickRequired = true;
+				// HACK : It seems MyCommander is getting flooded by messages
+				break;
             }
             else if (message == "<shutdown>")
             {

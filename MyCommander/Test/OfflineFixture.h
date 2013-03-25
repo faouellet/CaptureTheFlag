@@ -84,6 +84,23 @@ struct OfflineFixture
 
 		return ComputeMean(l_Times) < MAX_TIME_TICK;
 	}
+
+	std::unique_ptr<GameInfo> InitGameInfo(const json_spirit::mValue & in_GameValue) const
+	{
+		std::unique_ptr<GameInfo> l_GameInfo = fromJSON<GameInfo>(in_GameValue);
+
+		for(auto l_It=l_GameInfo->teams["Blue"]->members.begin(); l_It != l_GameInfo->teams["Blue"]->members.end(); ++l_It)
+		{
+			BotInfo* l_Bot = *l_It;
+
+			if(!l_Bot)
+				continue;
+
+			l_GameInfo->bots_available.push_back(l_Bot);
+		}
+
+		return l_GameInfo;
+	}
 };
 
 const double OfflineFixture::MAX_TIME_INIT = 5000.0;

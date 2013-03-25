@@ -73,10 +73,10 @@
     <None Include="Perf.txt">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="..\CaptureTheFlag\Server.bat">
+    <None Include="QValues.json">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="QValues.json">
+    <None Include="Server.bat">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

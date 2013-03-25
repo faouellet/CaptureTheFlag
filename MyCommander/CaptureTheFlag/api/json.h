@@ -250,31 +250,6 @@ inline std::string toJSON(const ConnectClient& object)
     return text;
 }
 
-inline std::string toJSON(const Command& object)
-{
-    const DefendCommand* defend = dynamic_cast<const DefendCommand*>(&object);
-    if (defend)
-    {
-        return toJSON(*defend);
-    }
-    const MoveCommand* move = dynamic_cast<const MoveCommand*>(&object);
-    if (move)
-    {
-        return toJSON(*move);
-    }
-    const AttackCommand* attack = dynamic_cast<const AttackCommand*>(&object);
-    if (attack)
-    {
-        return toJSON(*attack);
-    }
-    const ChargeCommand* charge = dynamic_cast<const ChargeCommand*>(&object);
-    if (charge)
-    {
-        return toJSON(*charge);
-    }
-    return "";
-}
-
 inline std::string toJSON(const DefendCommand& object)
 {
     mObject jsonObj;
@@ -340,6 +315,30 @@ inline std::string toJSON(const ChargeCommand& object)
     return text;
 }
 
+inline std::string toJSON(const Command& object)
+{
+    const DefendCommand* defend = dynamic_cast<const DefendCommand*>(&object);
+    if (defend)
+    {
+        return toJSON(*defend);
+    }
+    const MoveCommand* move = dynamic_cast<const MoveCommand*>(&object);
+    if (move)
+    {
+        return toJSON(*move);
+    }
+    const AttackCommand* attack = dynamic_cast<const AttackCommand*>(&object);
+    if (attack)
+    {
+        return toJSON(*attack);
+    }
+    const ChargeCommand* charge = dynamic_cast<const ChargeCommand*>(&object);
+    if (charge)
+    {
+        return toJSON(*charge);
+    }
+    return "";
+}
 
 inline Vector2 toVector2(const json_spirit::mArray& arr)
 {

@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="api\main.cpp">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="api\GameInfo.cpp">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="MyCommander.cpp" />
+    <ClCompile Include="examples\BalancedCommander.cpp">
+      <Filter>examples</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\DefenderCommander.cpp">
+      <Filter>examples</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\GreedyCommander.cpp">
+      <Filter>examples</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\RandomCommander.cpp">
+      <Filter>examples</Filter>
+    </ClCompile>
+    <ClCompile Include="api\NetworkCommanderClient.cpp">
+      <Filter>api</Filter>
+    </ClCompile>
+    <ClCompile Include="Planner.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Navigator.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="api">
+      <UniqueIdentifier>{c2bea0bf-456d-409c-84b8-eba45c620ffb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="examples">
+      <UniqueIdentifier>{51ce3ce2-ec15-4818-b334-73ad915687ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{841349f9-4e7f-4a8c-a56e-4563ffe091de}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="api\Commander.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="api\CommanderFactory.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="api\Commands.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="api\GameInfo.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="api\json.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="api\Vector2.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="api\NetworkCommanderClient.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="MyCommander.h" />
+    <ClInclude Include="Planner.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Navigator.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Heuristics.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,4 @@
+Tick: 0 Duration: 10
+Tick: 1 Duration: 10
+Tick: 2 Duration: 10
+Tick: 3 Duration: 10

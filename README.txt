@@ -4,5 +4,4 @@ Installation:
 
 2- Télécharger et installer AI Sandbox 
 
-3- Télécharger le repo
-
+3- Télécharger le dépôt

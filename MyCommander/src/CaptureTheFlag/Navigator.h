@@ -1,6 +1,7 @@
 #ifndef NAVIGATOR_H
 #define NAVIGATOR_H
 
+#include <iostream>
 #include <map>
 #include <memory>
 #include <vector>
@@ -47,7 +48,9 @@ public:
 
 		bool operator<(const Node & in_Node) const
 		{
-			return Level < in_Node.Level ? true : Level == in_Node.Level ? Position < in_Node.Position : false;
+			return Level < in_Node.Level 
+				|| (Level == in_Node.Level && Position < in_Node.Position) 
+				|| (Level == in_Node.Level && Position == in_Node.Position && Height < in_Node.Height);
 		}
 	};
 
@@ -92,6 +95,8 @@ private:
 	{
 		bool operator()(const std::pair<std::shared_ptr<Node>, double> in_Value1, const std::pair<std::shared_ptr<Node>, double> in_Value2) const
 		{
+			if(std::abs(in_Value1.second - in_Value2.second) < std::numeric_limits<double>::epsilon())
+				return *in_Value1.first < *in_Value2.first;
 			return in_Value1.second < in_Value2.second;
 		}
 	};

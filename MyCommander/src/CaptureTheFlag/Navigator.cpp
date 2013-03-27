@@ -81,33 +81,33 @@ void Navigator::Init(const std::unique_ptr<float[]> & in_Level, const int in_Len
 	Preprocess();
 }
 
+// TODO : Assume monotonic heuristic fucntion
 double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::shared_ptr<Node> & in_Goal, const int in_Level, const IHeuristic & in_Heuristic)
 {
-	std::set<std::pair<std::shared_ptr<Node>, double>, Comparator> l_Closed;
-	std::set<std::pair<std::shared_ptr<Node>, double>, Comparator> l_Opened;
-	l_Opened.insert(std::make_pair<std::shared_ptr<Node>, double>(in_Start, 0.0));
+	std::multimap<double, std::shared_ptr<Node>> l_Closed;
+	std::multimap<double, std::shared_ptr<Node>> l_Opened;
+	l_Opened.insert(std::make_pair(0.0, in_Start));
 	std::map<std::shared_ptr<Node>, std::shared_ptr<Node>> l_Parents;
 	l_Parents[in_Start] = std::make_shared<Node>(Node());
+	
 	std::map<std::shared_ptr<Node>, double> l_RealCosts;
-	std::vector<std::shared_ptr<Node>> l_Path;
-
-	// TODO : Yeaaahh.... about that condition...
-	while(true)
+	l_RealCosts[l_Opened.begin()->second] = 0.0;
+	
+	while(!l_Opened.empty())
 	{
-		if(l_Opened.empty())
-			return std::numeric_limits<double>::infinity();
-
 		// TODO : Cache the call l_Opened.begin() ?
-		std::shared_ptr<Node> l_Node = l_Opened.begin()->first;
+		std::shared_ptr<Node> l_CurrentNode = l_Opened.begin()->second;
 		l_Closed.insert(*l_Opened.begin());
 		l_Opened.erase(l_Opened.begin());
 
-		if(l_Node == in_Goal)
+		if(l_CurrentNode == in_Goal)
 		{
+			std::vector<std::shared_ptr<Node>> l_Path;
+			
 			// Reverse the parents' chain to get the path
-			std::shared_ptr<Node> l_ParentNode = l_Parents[l_Node];
+			std::shared_ptr<Node> l_ParentNode = l_Parents[l_CurrentNode];
 
-			l_Path.push_back(l_Node);
+			l_Path.push_back(l_CurrentNode);
 			 
 			while(l_ParentNode != in_Start)
 			{
@@ -120,51 +120,45 @@ double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::share
 			// Cache the path
 			m_Paths[in_Start][in_Goal] = l_Path;
 
-			return l_RealCosts[l_Node];
+			return l_RealCosts[l_CurrentNode];
 		}
 
-		std::for_each(m_Graphs[in_Level].at(l_Node).begin(), m_Graphs[in_Level].at(l_Node).end(), 
-			[&l_Closed, &l_Opened, &l_RealCosts, &l_Node,& l_Parents, &in_Heuristic, &in_Goal]
-		(const std::map<std::shared_ptr<Node>, double>::value_type & in_Val)
+		for(auto l_NeighborIt = m_Graphs[in_Level].at(l_CurrentNode).begin(); l_NeighborIt != m_Graphs[in_Level].at(l_CurrentNode).end(); ++l_NeighborIt)
 		{
 			// Transition between diagonal nodes is 1.42 and 1 for vertical/horizontal nodes
-			double l_TransitionCost = (in_Val.first->Position.x == l_Node->Position.x 
-				|| in_Val.first->Position.y == l_Node->Position.y) ? 1.0 : 1.42;
+			double l_TransitionCost = (l_NeighborIt->first->Position.x == l_CurrentNode->Position.x 
+				|| l_NeighborIt->first->Position.y == l_CurrentNode->Position.y) ? 1.0 : 1.42;
 
-			l_RealCosts[in_Val.first] = l_RealCosts[l_Node] + l_TransitionCost;
-			double l_ValCost = l_RealCosts[in_Val.first] + in_Heuristic(*in_Val.first, *in_Goal);
-			l_Parents[in_Val.first] = l_Node;
-			
-			// TODO : Merge the two loops ? Or at least don't repeat this much code...
-			for(auto l_OpenedIt = l_Opened.begin(); l_OpenedIt != l_Opened.end(); ++l_OpenedIt)
+			double l_TentativeRealCost = l_RealCosts[l_CurrentNode] + l_TransitionCost;
+
+			auto l_ClosedNodeIt = std::find_if(l_Closed.begin(), l_Closed.end(), 
+				[&l_NeighborIt](const std::pair<double, std::shared_ptr<Node>> & in_Node)
 			{
-				if(l_OpenedIt->first == in_Val.first)
+				return *in_Node.second == *l_NeighborIt->first;
+			});
+
+			if(l_ClosedNodeIt != l_Closed.end() && l_TentativeRealCost >= l_RealCosts[l_NeighborIt->first])
+				continue;
+
+			auto l_OpenedIt = std::find_if(l_Opened.begin(), l_Opened.end(), 
+				[&l_NeighborIt](const std::pair<double, std::shared_ptr<Node>> & in_Node)
+			{
+				return *in_Node.second == *l_NeighborIt->first;
+			});
+
+			if(l_OpenedIt == l_Opened.end() || l_TentativeRealCost < l_RealCosts[l_NeighborIt->first])
+			{
+				l_Parents[l_NeighborIt->first] = l_CurrentNode;
+				l_RealCosts[l_NeighborIt->first] = l_TentativeRealCost;
+				if(l_OpenedIt == l_Opened.end())
 				{
-					double l_NeighborCost = l_RealCosts[l_OpenedIt->first] + in_Heuristic(*l_OpenedIt->first, *in_Goal);
-					if(l_ValCost <= l_NeighborCost)
-					{
-						l_Opened.erase(l_OpenedIt);
-						break;
-					}					
+					l_Opened.insert(std::make_pair(l_RealCosts[l_NeighborIt->first] + in_Heuristic(*l_NeighborIt->first, *in_Goal), l_NeighborIt->first));
 				}
 			}
-
-			for(auto l_ClosedIt = l_Closed.begin(); l_ClosedIt != l_Closed.end(); ++l_ClosedIt)
-			{
-				if(l_ClosedIt->first == in_Val.first)
-				{					
-					double l_NeighborCost = l_RealCosts[l_ClosedIt->first] + in_Heuristic(*l_ClosedIt->first, *in_Goal);
-					if(l_ValCost <= l_NeighborCost)
-					{
-						l_Closed.erase(l_ClosedIt);
-						break;
-					}
-				}
-			}
-			
-			l_Opened.insert(std::make_pair(in_Val.first, l_ValCost));
-		});
+		}
 	}
+
+	return std::numeric_limits<double>::infinity();
 }
 
 // ********** Offline processing **********

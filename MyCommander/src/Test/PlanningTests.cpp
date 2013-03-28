@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE( QLearningInitCorrectnessTest )
 
 	for(int i = 0; i < 500; ++i)
 	{
-		l_Actions[i] = m_Plan.GetNextAction(*(m_GameInitInfo->team->members.begin()), l_State);
+//		l_Actions[i] = m_Plan.GetNextAction(*(m_GameInitInfo->team->members.begin()), l_State);
 	}
 
 	int l_Count = std::count_if(l_Actions.begin(), l_Actions.end(), [&l_GoodAction](const Planner::Actions in_Action)
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE( QLearningTickCorrectnessTest )
 
 	for(int i = 0; i < 500; ++i)
 	{
-		l_Actions[i] = m_Plan.GetNextAction(*(m_GameTickInfo->team->members.begin()), l_State);
+//		l_Actions[i] = m_Plan.GetNextAction(*(m_GameTickInfo->team->members.begin()), l_State);
 	}
 
 	int l_Count = std::count_if(l_Actions.begin(), l_Actions.end(), [&l_GoodAction](const Planner::Actions in_Action)

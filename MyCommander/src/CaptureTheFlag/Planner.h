@@ -33,6 +33,8 @@ private:
 	typedef std::pair<Actions, State> ActionState;
 
 private:
+	int m_TeamScore;
+	int m_EnemyScore;
 	double m_LearningRate;
 	double m_Epsilon;
 	double m_Discount;
@@ -45,14 +47,15 @@ private:
 	std::map<std::string, ActionState> m_LastOrders;
 
 public:
-	Planner() { m_UniformRealDistribution = std::uniform_real_distribution<double>(0.0, 1.0); }
+	Planner() : m_TeamScore(0), m_EnemyScore(0) { m_UniformRealDistribution = std::uniform_real_distribution<double>(0.0, 1.0); }
 	void Init(const std::unique_ptr<GameInfo> & in_Game, const bool in_LoadFromDisk = false, 
-		const double in_LearningRate = 0.1, const double in_Epsilon = 0.1, const double in_Discount = 0.9995);
+		const double in_LearningRate = 0.25, const double in_Epsilon = 0.15, const double in_Discount = 0.9995);
 
 	bool LoadPlanFromDisk(const std::string & in_Filename);
 	bool WritePlanToDisk(const std::string & in_Filename);
 
-	Actions GetNextAction(const BotInfo* in_Bot, const State & in_CurrentState, const std::vector<MatchCombatEvent> & in_Events = std::vector<MatchCombatEvent>());
+	Actions GetNextAction(const BotInfo* in_Bot, const State & in_CurrentState, const int in_TeamScore, const int in_EnemyScore,
+		const std::vector<MatchCombatEvent> & in_Events = std::vector<MatchCombatEvent>());
 
 	void SetQValues(const std::map<ActionState, double> & in_QValues) { m_QValues = in_QValues; }
 
@@ -61,8 +64,8 @@ private:
 	std::string QValuesToString() const;
 	bool QValuesFromString(const std::string in_Content);
 	Actions GetBestAction(const State in_State);
-	int ComputeReward(const BotInfo* in_Bot, const Planner::State & in_CurrentState, 
-		const Planner::Actions in_CurrentAction, const std::vector<MatchCombatEvent> & in_Events) const;
+	int ComputeReward(const BotInfo* in_Bot, const Planner::State & in_CurrentState, const int in_TeamScore, const int in_EnemyScore,
+		const Planner::Actions in_CurrentAction, const std::vector<MatchCombatEvent> & in_Events);
 
 };
 

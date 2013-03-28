@@ -53,7 +53,7 @@ struct PlanningFixture
 		for(int i = 0; i < 100; ++i)
 		{
 			l_Start = boost::chrono::high_resolution_clock::now();
-			m_Plan.GetNextAction(*(m_GameTickInfo->team->members.begin()), M_SUPPORTSTATE);
+//			m_Plan.GetNextAction(*(m_GameTickInfo->team->members.begin()), M_SUPPORTSTATE);
 			l_Durations[i] = boost::chrono::high_resolution_clock::now() - l_Start;
 		}
 

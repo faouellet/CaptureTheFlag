@@ -68,12 +68,12 @@ bool Planner::WritePlanToDisk(const std::string & in_Filename)
 	return l_Ok;
 }
 
-Planner::Actions Planner::GetNextAction(const BotInfo* in_Bot, const Planner::State & in_CurrentState,
-										const std::vector<MatchCombatEvent> & in_Events)
+Planner::Actions Planner::GetNextAction(const BotInfo* in_Bot, const Planner::State & in_CurrentState, const int in_TeamScore,
+										const int in_EnemyScore, const std::vector<MatchCombatEvent> & in_Events)
 {
 #ifdef _TRAIN
 	ActionState l_PreviousActionState = m_LastOrders[in_Bot->name];
-	double l_Reward = ComputeReward(in_Bot, in_CurrentState, l_PreviousActionState.first, in_Events);
+	double l_Reward = ComputeReward(in_Bot, in_CurrentState, in_TeamScore, in_EnemyScore, l_PreviousActionState.first, in_Events);
 	Actions l_BestAction = GetBestAction(in_CurrentState);
 	double l_Delta = l_Reward + m_Discount * m_QValues[std::make_pair(l_BestAction, in_CurrentState)] - m_QValues[l_PreviousActionState];
 	m_QValues[l_PreviousActionState] += m_LearningRate * l_Delta;
@@ -96,13 +96,33 @@ Planner::Actions Planner::GetNextAction(const BotInfo* in_Bot, const Planner::St
 }
 
 // TODO : Those are local rewards, should do something about global rewards
-int Planner::ComputeReward(const BotInfo * in_Bot, const Planner::State & in_CurrentState, 
-				  const Planner::Actions in_CurrentAction, const std::vector<MatchCombatEvent> & in_Events) const
+int Planner::ComputeReward(const BotInfo * in_Bot, const Planner::State & in_CurrentState, const int in_TeamScore, const int in_EnemyScore,
+				  const Planner::Actions in_CurrentAction, const std::vector<MatchCombatEvent> & in_Events)
 {
-	auto l_EventIt = std::find_if(in_Events.begin(), in_Events.end(), [&in_Bot](const MatchCombatEvent & in_Event)
+	int l_Reward = 0;
+	auto l_KilledIt = std::find_if(in_Events.begin(), in_Events.end(), [&in_Bot](const MatchCombatEvent & in_Event)
+			{
+				return in_Event.type == MatchCombatEvent::TYPE_KILLED && in_Event.killedEventData.subject == in_Bot;
+			});
+	if(l_KilledIt != in_Events.end())
+		return -300;
+
+	auto l_EventIt = std::find_if(in_Events.begin(), in_Events.end(), [](const MatchCombatEvent & in_Event)
 			{
 				return in_Event.type == MatchCombatEvent::TYPE_FLAG_CAPTURED || in_Event.type == MatchCombatEvent::TYPE_FLAG_PICKEDUP;
 			});
+
+	// TODO : When scoring instead of capturing ?
+	if(m_TeamScore < in_TeamScore)
+	{
+		m_TeamScore = in_TeamScore;
+		l_Reward += 1600;
+	}
+	else
+	{
+		m_EnemyScore = in_EnemyScore;
+		l_Reward -= 400;
+	}
 
 	switch(in_CurrentAction)
 	{
@@ -111,8 +131,7 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const Planner::State & in_Cur
 			if(l_EventIt != in_Events.end()
 				&& ((l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.instigator == in_Bot)
 				|| (l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator == in_Bot)))
-				return 240;
-
+				l_Reward += 240;
 		}
 		case WaitEnemyBase:
 		{
@@ -120,12 +139,12 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const Planner::State & in_Cur
 			{
 				if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.instigator == in_Bot
 					|| l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator == in_Bot)
-					return 80;
+					l_Reward -= 80;
 				else if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.instigator->team == in_Bot->team
 					|| l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator->team == in_Bot->team)
-					return 120;
+					l_Reward += 120;
 				else
-					return -32;
+					l_Reward -= 32;
 			}
 			
 		}
@@ -136,12 +155,12 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const Planner::State & in_Cur
 			{
 				if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.instigator == in_Bot
 					|| l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator == in_Bot)
-					return 80;
+					l_Reward += 80;
 				else if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.instigator->team == in_Bot->team
 					|| l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator->team == in_Bot->team)
-					return 40;
+					l_Reward += 40;
 				else
-					return -80;
+					l_Reward -= 80;
 			}
 		}
 		case Defend:
@@ -151,13 +170,15 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const Planner::State & in_Cur
 				if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.instigator == in_Bot
 					|| l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator == in_Bot
 					|| in_Bot->flag)
-					return -80;
+					l_Reward -= 80;
 				if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.instigator->team != in_Bot->team
 					|| l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator->team != in_Bot->team)
-					return 160;
+					l_Reward += 160;
 			}
+			else if(in_CurrentState & AgentCarryFlag)
+				l_Reward -= 80;
 			else
-				return 10;
+				l_Reward += 10;
 		}
 		case SupportFlagCarrier:
 		{
@@ -165,25 +186,28 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const Planner::State & in_Cur
 			{
 				if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.subject != in_Bot->team->flag
 					|| l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.subject != in_Bot->team->flag)
-					return 80;
+					l_Reward += 80;
 			}
+			else if(in_CurrentState & TeammateCarryFlag)
+				l_Reward += 8;
 			else
-				return 8;
+				l_Reward -= 8;
 		}
 		case ReturnToBase:
 		{
-			if(l_EventIt != in_Events.end()
-				&& (l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.instigator == in_Bot
-				|| l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator == in_Bot))
-				return 320;
-			else if(in_Bot->flag)
-				return 80;
+			if(m_TeamScore < in_TeamScore)
+			{
+				m_TeamScore = in_TeamScore;
+				l_Reward += 320;
+			}
+			else if(in_Bot->flag || in_CurrentState & AgentCarryFlag)
+				l_Reward += 80;
 			else
-				return -120;
+				l_Reward -= 120;
 		}
 	}
 
-	return -1;
+	return l_Reward;
 }
 
 std::string Planner::QValuesToString() const

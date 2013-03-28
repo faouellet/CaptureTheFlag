@@ -62,20 +62,23 @@ private:
 		int Level;
 		int Length;
 		int Width;
-		std::vector<std::shared_ptr<Node>> Nodes;
+		std::vector<std::shared_ptr<Node>> BaseNodes;
+		std::vector<std::shared_ptr<Node>> LevelNodes;
 		std::map<std::shared_ptr<Node>, std::map<std::shared_ptr<Node>, double>> LocalGraph;
 
 		Cluster(const int in_Level = 0, const int in_Length = 1, const int in_Width = 1, 
-			const std::vector<std::shared_ptr<Node>> & in_Nodes = std::vector<std::shared_ptr<Node>>()) :
-		Level(in_Level), Length(in_Length), Width(in_Width), Nodes(in_Nodes) { }
+			const std::vector<std::shared_ptr<Node>> & in_BaseNodes = std::vector<std::shared_ptr<Node>>(),
+			const std::vector<std::shared_ptr<Node>> & in_LevelNodes = std::vector<std::shared_ptr<Node>>()) :
+		Level(in_Level), Length(in_Length), Width(in_Width), BaseNodes(in_BaseNodes), LevelNodes(in_LevelNodes) { }
 
 		Cluster(Cluster && in_Cluster) : Level(std::move(in_Cluster.Level)), Length(std::move(in_Cluster.Length)),
-			Width(std::move(in_Cluster.Width)), Nodes(std::move(in_Cluster.Nodes)), LocalGraph(std::move(in_Cluster.LocalGraph)) { }
+			Width(std::move(in_Cluster.Width)), BaseNodes(std::move(in_Cluster.BaseNodes)), 
+			LevelNodes(std::move(in_Cluster.LevelNodes)), LocalGraph(std::move(in_Cluster.LocalGraph)) { }
 
 		bool operator==(const Cluster & in_Cluster) const
 		{
 			return Level == in_Cluster.Level && Length == in_Cluster.Length && Width == in_Cluster.Width
-				&& Nodes == in_Cluster.Nodes && LocalGraph == in_Cluster.LocalGraph;
+				&& BaseNodes == in_Cluster.BaseNodes && LevelNodes == in_Cluster.LevelNodes && LocalGraph == in_Cluster.LocalGraph;
 		}
 	};
 
@@ -113,12 +116,12 @@ public:
 	Navigator() { }
 	void Init(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width, const int in_MaxEntranceWidth = 3);
 
-	Vector2 GetBestDirection(const Vector2 & in_Start, const Vector2 & in_Goal);
+	std::vector<Node> ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal);
+	std::vector<Vector2> ComputeConcretePath(const Node & in_StartNode, const Node & in_GoalNode);
+	void ProcessClusters();
 
 private:
 	double AStar(const std::shared_ptr<Node> & in_Start, const std::shared_ptr<Node> & in_Goal, const int in_Level, const IHeuristic & in_Heuristic);
-
-	// Offline processing
 
 	void AbstractMaze();
 	bool Adjacent(const Cluster & in_Cluster1, const Cluster & in_Cluster2, Adjacency & out_Adjacency) const;
@@ -130,14 +133,16 @@ private:
 	void BuildTopEntrances(const Cluster & in_Cluster1, const Cluster & in_Cluster2, 
 		std::vector<std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>>> & out_Gates);
 	void BuildGraph();
-	void AddIntraEdgesToClusters(const int in_Level);
 	void Preprocess();
-
-	// Online processing
-
+	
+	void AddIntraEdgesToClusters(const int in_Level, const double in_TimeLimit, Cluster & in_Cluster,
+		std::vector<std::shared_ptr<Node>>::iterator & io_It1, std::vector<std::shared_ptr<Node>>::iterator & io_It2);
+	
 	void ConnectToBorder(const std::shared_ptr<Node> & in_Node, Cluster & in_Cluster);
 	void InsertNode(const std::shared_ptr<Node> & in_Node, const int in_Level);
 	double SearchForDistance(const std::shared_ptr<Node> & in_Node1, const std::shared_ptr<Node> & in_Node2, const Cluster & in_Cluster);
+
+	std::shared_ptr<Node> FindClosestBaseNode(const Node & in_Node, const Cluster & in_Cluster) const;
 
 };
 

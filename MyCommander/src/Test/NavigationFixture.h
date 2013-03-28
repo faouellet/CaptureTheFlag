@@ -58,7 +58,7 @@ struct NavigationFixture
 		for(int i = 0; i < 100; ++i)
 		{
 			l_Start = boost::chrono::high_resolution_clock::now();
-			m_Nav.GetBestDirection(m_StartPos, m_GoalPos);
+//			m_Nav.GetBestDirection(m_StartPos, m_GoalPos);
 			l_Durations[i] = boost::chrono::high_resolution_clock::now() - l_Start;
 		}
 

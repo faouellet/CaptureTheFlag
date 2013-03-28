@@ -39,7 +39,8 @@ void MyCommander::tick()
 		{
 			auto l_Bot = m_game->bots_available[i];
 			Planner::State l_CurrentState = GetBotState(l_Bot);
-			Planner::Actions l_Action = m_Planner.GetNextAction(l_Bot, l_CurrentState, m_game->match->combatEvents);
+			Planner::Actions l_Action = m_Planner.GetNextAction(l_Bot, l_CurrentState, m_game->match->scores[m_game->team->name],
+				m_game->match->scores[m_game->enemyTeam->name], m_game->match->combatEvents);
 			ActionToCommand(l_Action, l_Bot);
 		}
 	}

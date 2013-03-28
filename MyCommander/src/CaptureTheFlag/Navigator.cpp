@@ -23,7 +23,7 @@ void Navigator::Init(const std::unique_ptr<float[]> & in_Level, const int in_Len
 	std::for_each(in_Level.get(), in_Level.get() + in_Length * in_Width, [&l_Cluster, &in_Length, &l_X, &l_Y, this](const float in_Block)
 	{
 		// The first level cluster is in fact the whole map
-		l_Cluster->Nodes.push_back(std::make_shared<Node>(Navigator::Node(0, static_cast<int>(in_Block), Vector2(static_cast<float>(l_X), static_cast<float>(l_Y)))));
+		l_Cluster->LevelNodes.push_back(std::make_shared<Node>(Navigator::Node(0, static_cast<int>(in_Block), Vector2(static_cast<float>(l_X), static_cast<float>(l_Y)))));
 		
 		if(l_X < in_Length - 1)
 		{
@@ -43,31 +43,31 @@ void Navigator::Init(const std::unique_ptr<float[]> & in_Level, const int in_Len
 		for(int j = 0; j < in_Length; ++j)
 		{
 			l_CurrentNodeIndex = j + i * in_Width;
-			if(!l_Cluster->Nodes[l_CurrentNodeIndex]->Height)
+			if(!l_Cluster->LevelNodes[l_CurrentNodeIndex]->Height)
 			{
 				// Link the right node
-				if(j < in_Length-1 && !l_Cluster->Nodes[l_CurrentNodeIndex+1]->Height)
+				if(j < in_Length-1 && !l_Cluster->LevelNodes[l_CurrentNodeIndex+1]->Height)
 				{
-					l_Cluster->LocalGraph[l_Cluster->Nodes[l_CurrentNodeIndex]][l_Cluster->Nodes[l_CurrentNodeIndex+1]] = 1.0;
-					l_Cluster->LocalGraph[l_Cluster->Nodes[l_CurrentNodeIndex+1]][l_Cluster->Nodes[l_CurrentNodeIndex]] = 1.0;
+					l_Cluster->LocalGraph[l_Cluster->LevelNodes[l_CurrentNodeIndex]][l_Cluster->LevelNodes[l_CurrentNodeIndex+1]] = 1.0;
+					l_Cluster->LocalGraph[l_Cluster->LevelNodes[l_CurrentNodeIndex+1]][l_Cluster->LevelNodes[l_CurrentNodeIndex]] = 1.0;
 				}
 				// Link the down-right node
-				if(j < in_Length-1 && i < in_Width-1 && !l_Cluster->Nodes[(j+1) + (i+1) * in_Width]->Height)
+				if(j < in_Length-1 && i < in_Width-1 && !l_Cluster->LevelNodes[(j+1) + (i+1) * in_Width]->Height)
 				{
-					l_Cluster->LocalGraph[l_Cluster->Nodes[l_CurrentNodeIndex]][l_Cluster->Nodes[(j+1) + (i+1) * in_Width]] = 1.0;
-					l_Cluster->LocalGraph[l_Cluster->Nodes[(j+1) + (i+1) * in_Width]][l_Cluster->Nodes[l_CurrentNodeIndex]] = 1.0;
+					l_Cluster->LocalGraph[l_Cluster->LevelNodes[l_CurrentNodeIndex]][l_Cluster->LevelNodes[(j+1) + (i+1) * in_Width]] = 1.0;
+					l_Cluster->LocalGraph[l_Cluster->LevelNodes[(j+1) + (i+1) * in_Width]][l_Cluster->LevelNodes[l_CurrentNodeIndex]] = 1.0;
 				}
 				// Link the down node
-				if(i < in_Width-1 && !l_Cluster->Nodes[j + (i+1) * in_Width]->Height)
+				if(i < in_Width-1 && !l_Cluster->LevelNodes[j + (i+1) * in_Width]->Height)
 				{
-					l_Cluster->LocalGraph[l_Cluster->Nodes[l_CurrentNodeIndex]][l_Cluster->Nodes[j + (i+1) * in_Width]] = 1.0;
-					l_Cluster->LocalGraph[l_Cluster->Nodes[j + (i+1) * in_Width]][l_Cluster->Nodes[l_CurrentNodeIndex]] = 1.0;
+					l_Cluster->LocalGraph[l_Cluster->LevelNodes[l_CurrentNodeIndex]][l_Cluster->LevelNodes[j + (i+1) * in_Width]] = 1.0;
+					l_Cluster->LocalGraph[l_Cluster->LevelNodes[j + (i+1) * in_Width]][l_Cluster->LevelNodes[l_CurrentNodeIndex]] = 1.0;
 				}
 				// Link the down-left node
-				if(j > 0 && i < in_Width-1 && !l_Cluster->Nodes[(j-1) + (i+1) * in_Width]->Height)
+				if(j > 0 && i < in_Width-1 && !l_Cluster->LevelNodes[(j-1) + (i+1) * in_Width]->Height)
 				{
-					l_Cluster->LocalGraph[l_Cluster->Nodes[l_CurrentNodeIndex]][l_Cluster->Nodes[(j-1) + (i+1) * in_Width]] = 1.0;
-					l_Cluster->LocalGraph[l_Cluster->Nodes[(j-1) + (i+1) * in_Width]][l_Cluster->Nodes[l_CurrentNodeIndex]] = 1.0;
+					l_Cluster->LocalGraph[l_Cluster->LevelNodes[l_CurrentNodeIndex]][l_Cluster->LevelNodes[(j-1) + (i+1) * in_Width]] = 1.0;
+					l_Cluster->LocalGraph[l_Cluster->LevelNodes[(j-1) + (i+1) * in_Width]][l_Cluster->LevelNodes[l_CurrentNodeIndex]] = 1.0;
 				}
 			}
 		}
@@ -95,7 +95,6 @@ double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::share
 	
 	while(!l_Opened.empty())
 	{
-		// TODO : Cache the call l_Opened.begin() ?
 		std::shared_ptr<Node> l_CurrentNode = l_Opened.begin()->second;
 		l_Closed.insert(*l_Opened.begin());
 		l_Opened.erase(l_Opened.begin());
@@ -114,7 +113,6 @@ double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::share
 				l_Path.push_back(l_ParentNode);
 				l_ParentNode = l_Parents[l_ParentNode];
 			}
-			// TODO : Use std::deque instead of reversing a vector ?
 			std::reverse(l_Path.begin(), l_Path.end());
 
 			// Cache the path
@@ -188,35 +186,36 @@ void Navigator::AbstractMaze()
 }
 
 // We assume that a cluster contains all nodes, even the ones representing a block
+// We also assume that we are only gonna call this on the first layer
 bool Navigator::Adjacent(const Cluster & in_Cluster1, const Cluster & in_Cluster2, Adjacency & out_Adjacency) const
 {
 	assert(in_Cluster1.Level == in_Cluster2.Level);
 	bool l_Ok = false;
  
 	// Cluster1 to the right of Cluster2 ?
-	if(in_Cluster1.Nodes[0]->Position.x == in_Cluster2.Nodes[in_Cluster2.Length-1]->Position.x+1
-		&& in_Cluster1.Nodes[0]->Position.y == in_Cluster2.Nodes[in_Cluster2.Length-1]->Position.y)
+	if(in_Cluster1.BaseNodes[0]->Position.x == in_Cluster2.BaseNodes[in_Cluster2.Length-1]->Position.x+1
+		&& in_Cluster1.BaseNodes[0]->Position.y == in_Cluster2.BaseNodes[in_Cluster2.Length-1]->Position.y)
 	{
 		l_Ok = true;
 		out_Adjacency = Right;
 	}
 	// Cluster1 below Cluster2 ?
-	else if(in_Cluster1.Nodes[0]->Position.y == in_Cluster2.Nodes[(in_Cluster2.Length-1)*in_Cluster2.Width]->Position.y+1
-		&& in_Cluster1.Nodes[0]->Position.x == in_Cluster2.Nodes[(in_Cluster2.Length-1)*in_Cluster2.Width]->Position.x)
+	else if(in_Cluster1.BaseNodes[0]->Position.y == in_Cluster2.BaseNodes[(in_Cluster2.Length-1)*in_Cluster2.Width]->Position.y+1
+		&& in_Cluster1.BaseNodes[0]->Position.x == in_Cluster2.BaseNodes[(in_Cluster2.Length-1)*in_Cluster2.Width]->Position.x)
 	{
 		l_Ok = true;
 		out_Adjacency = Below;
 	}
 	// Cluster1 to left of Cluster2 ?
-	else if(in_Cluster1.Nodes[in_Cluster1.Length-1]->Position.x == in_Cluster2.Nodes[0]->Position.x-1
-		&& in_Cluster1.Nodes[in_Cluster1.Length-1]->Position.y == in_Cluster2.Nodes[0]->Position.y)
+	else if(in_Cluster1.BaseNodes[in_Cluster1.Length-1]->Position.x == in_Cluster2.BaseNodes[0]->Position.x-1
+		&& in_Cluster1.BaseNodes[in_Cluster1.Length-1]->Position.y == in_Cluster2.BaseNodes[0]->Position.y)
 	{
 		l_Ok = true;
 		out_Adjacency = Left;
 	}
 	// Cluster1 above Cluster2 ?
-	else if(in_Cluster1.Nodes[(in_Cluster1.Length-1)*in_Cluster1.Width]->Position.y == in_Cluster2.Nodes[0]->Position.y-1
-		&& in_Cluster1.Nodes[(in_Cluster1.Length-1)*in_Cluster1.Width]->Position.x == in_Cluster2.Nodes[0]->Position.x)
+	else if(in_Cluster1.BaseNodes[(in_Cluster1.Length-1)*in_Cluster1.Width]->Position.y == in_Cluster2.BaseNodes[0]->Position.y-1
+		&& in_Cluster1.BaseNodes[(in_Cluster1.Length-1)*in_Cluster1.Width]->Position.x == in_Cluster2.BaseNodes[0]->Position.x)
 	{
 		l_Ok = true;
 		out_Adjacency = Above;
@@ -262,7 +261,7 @@ void Navigator::BuildClusters(const int in_Level)
 		{
 			for(int j = l_LengthOffset; j < l_ClusterLength + l_LengthOffset; ++j)
 			{
-				l_It->Nodes.push_back(m_Clusters[in_Level - 1].begin()->Nodes[j + (i * l_Width)]);
+				l_It->BaseNodes.push_back(m_Clusters[in_Level - 1].begin()->LevelNodes[j + (i * l_Width)]);
 			}
 		}
 		if(l_LengthOffset + l_ClusterLength < l_Length)
@@ -316,16 +315,16 @@ void Navigator::BuildSideEntrances(const Cluster & in_Cluster1, const Cluster & 
 	{
 		int l_Index1 = in_Cluster1.Length + (in_Cluster1.Width * i) - 1;
 		int l_Index2 = in_Cluster2.Width * i;
-		if(in_Cluster1.Nodes[l_Index1]->Height 
-			|| in_Cluster2.Nodes[l_Index2]->Height)
+		if(in_Cluster1.BaseNodes[l_Index1]->Height 
+			|| in_Cluster2.BaseNodes[l_Index2]->Height)
 		{
 			++j;
 		}
 		else
 		{
 			l_PotentialGates[j].push_back(std::make_pair(
-				std::make_shared<Node>(Node(in_Cluster1.Level, in_Cluster1.Nodes[l_Index1]->Height, in_Cluster1.Nodes[l_Index1]->Position)),
-				std::make_shared<Node>(Node(in_Cluster2.Level, in_Cluster2.Nodes[l_Index2]->Height, in_Cluster2.Nodes[l_Index2]->Position))));
+				std::make_shared<Node>(Node(in_Cluster1.Level, in_Cluster1.BaseNodes[l_Index1]->Height, in_Cluster1.BaseNodes[l_Index1]->Position)),
+				std::make_shared<Node>(Node(in_Cluster2.Level, in_Cluster2.BaseNodes[l_Index2]->Height, in_Cluster2.BaseNodes[l_Index2]->Position))));
 		}
 	}
 
@@ -334,15 +333,23 @@ void Navigator::BuildSideEntrances(const Cluster & in_Cluster1, const Cluster & 
 		if(l_PotentialGates[i].size() == m_MaxEntranceWidth)
 		{
 			out_Gates.push_back(l_PotentialGates[i][l_PotentialGates[i].size()/2]);
+			//in_Cluster1.LevelNodes.push_back(l_PotentialGates[i][l_PotentialGates[i].size()/2].first);
+			//in_Cluster2.LevelNodes.push_back(l_PotentialGates[i][l_PotentialGates[i].size()/2].second);
 		}
 		else if(l_PotentialGates[i].size() < m_MaxEntranceWidth)
 		{
 			out_Gates.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1]);
+			//in_Cluster1.LevelNodes.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1].first);
+			//in_Cluster2.LevelNodes.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1].second);
 		}
 		else // l_PotentialGates[i].size() > m_MaxEntranceWidth
 		{
 			out_Gates.push_back(l_PotentialGates[i][0]);
 			out_Gates.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1]);
+			//in_Cluster1.LevelNodes.push_back(l_PotentialGates[i][0].first);
+			//in_Cluster2.LevelNodes.push_back(l_PotentialGates[i][0].second);
+			//in_Cluster1.LevelNodes.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1].first);
+			//in_Cluster2.LevelNodes.push_back(l_PotentialGates[i][l_PotentialGates[i].size()-1].second);
 		}
 	}
 }
@@ -355,16 +362,16 @@ void Navigator::BuildTopEntrances(const Cluster & in_Cluster1, const Cluster & i
 
 	for(int i = 0; i < in_Cluster1.Length; ++i)
 	{
-		if(in_Cluster1.Nodes[in_Cluster1.Width * (in_Cluster1.Length - 1) + i]->Height 
-			|| in_Cluster2.Nodes[i]->Height)
+		if(in_Cluster1.BaseNodes[in_Cluster1.Width * (in_Cluster1.Length - 1) + i]->Height 
+			|| in_Cluster2.BaseNodes[i]->Height)
 		{
 			++j;
 		}
 		else
 		{
 			l_PotentialGates[j].push_back(std::make_pair(
-				in_Cluster1.Nodes[in_Cluster1.Width*(in_Cluster1.Length-1)+i],
-				in_Cluster2.Nodes[i]));
+				std::make_shared<Node>(Node(in_Cluster1.Level, in_Cluster1.BaseNodes[in_Cluster1.Width*(in_Cluster1.Length-1)+i]->Height, in_Cluster1.BaseNodes[in_Cluster1.Width*(in_Cluster1.Length-1)+i]->Position)),
+				std::make_shared<Node>(Node(in_Cluster2.Level, in_Cluster2.BaseNodes[i]->Height, in_Cluster2.BaseNodes[i]->Position))));
 		}
 	}
 
@@ -398,39 +405,38 @@ void Navigator::BuildGraph()
 
 		for(auto l_GatesIt = in_Entrance.Gates.begin(); l_GatesIt != in_Entrance.Gates.end(); ++l_GatesIt)
 		{
-			// High level transitions always cost 1
+			// Gate transitions always cost 1
 			m_Graphs[1][l_GatesIt->first][l_GatesIt->second] = 1.0;
 			m_Graphs[1][l_GatesIt->second][l_GatesIt->first] = 1.0;
 		}
 	});
-	AddIntraEdgesToClusters(1);
+
+	std::for_each(m_Clusters[1].begin(), m_Clusters[1].end(), [this](Cluster & in_Cluster)
+	{
+		AddIntraEdgesToClusters(1, std::numeric_limits<double>::infinity(), in_Cluster, in_Cluster.LevelNodes.begin(), in_Cluster.LevelNodes.begin()+1);
+	});
+	
 }
 
-// TODO : This function and the one it calls(SearchForDistance) should be interruptible
-void Navigator::AddIntraEdgesToClusters(const int in_Level)
+void Navigator::AddIntraEdgesToClusters(const int in_Level, const double in_TimeLimit, Cluster & in_Cluster,
+										std::vector<std::shared_ptr<Node>>::iterator & io_It1, std::vector<std::shared_ptr<Node>>::iterator & io_It2)
 {
-	std::for_each(m_Clusters[in_Level].begin(), m_Clusters[in_Level].end(), [this, &in_Level](Cluster & in_Cluster)
+	while(io_It1 != in_Cluster.LevelNodes.end())
 	{
-		auto l_It1 = in_Cluster.Nodes.begin();
-		auto l_It2 = in_Cluster.Nodes.begin() + 1;
-		auto l_End = in_Cluster.Nodes.end();
-	
-		while(l_It1 != l_End)
+		// TODO : Stop when the time is up as well
+		while(io_It2 != in_Cluster.LevelNodes.end())
 		{
-			while(l_It2 != l_End)
-			{
-				double l_Distance = SearchForDistance(*l_It1, *l_It2, in_Cluster);
+			double l_Distance = SearchForDistance(*io_It1, *io_It2, in_Cluster);
 
-				if(l_Distance < std::numeric_limits<double>::infinity())
-				{
-					in_Cluster.LocalGraph[*l_It1][*l_It2] = l_Distance;
-				}
-				++l_It2;
+			if(l_Distance < std::numeric_limits<double>::infinity())
+			{
+				in_Cluster.LocalGraph[*io_It1][*io_It2] = l_Distance;
 			}
-			++l_It1;
-			l_It2 = l_It1 + 1;
+			++io_It2;
 		}
-	});
+		++io_It1;
+		io_It2 = io_It1 + 1;
+	}
 }
 
 void Navigator::Preprocess()
@@ -443,7 +449,7 @@ void Navigator::Preprocess()
 
 void Navigator::ConnectToBorder(const std::shared_ptr<Node> & in_Node, Cluster & in_Cluster)
 {
-	for(auto l_It = in_Cluster.Nodes.begin(); l_It != in_Cluster.Nodes.end(); ++l_It)
+	for(auto l_It = in_Cluster.LevelNodes.begin(); l_It != in_Cluster.LevelNodes.end(); ++l_It)
 	{
 		if(in_Node->Level < in_Cluster.Level)
 			continue;
@@ -464,7 +470,7 @@ void Navigator::InsertNode(const std::shared_ptr<Node> & in_Node, const int in_L
 		auto l_It = m_Clusters[in_Level].begin();
 		for(; l_It != m_Clusters[in_Level].end(); ++l_It)
 		{
-			if(std::find(l_It->Nodes.begin(), l_It->Nodes.end(), in_Node) != l_It->Nodes.end())
+			if(std::find(l_It->LevelNodes.begin(), l_It->LevelNodes.end(), in_Node) != l_It->LevelNodes.end())
 				break;
 		}
 
@@ -483,21 +489,82 @@ double Navigator::SearchForDistance(const std::shared_ptr<Node> & in_Node1, cons
 	return AStar(in_Node1, in_Node2, in_Cluster.Level-1, TrivialHeuristic());
 }
 
-Vector2 Navigator::GetBestDirection(const Vector2 & in_Start, const Vector2 & in_Goal)
+std::vector<Navigator::Node> Navigator::ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal)
 {
-	// TODO : Do we want to scale up or no ? Because this doesn't scale
 	std::shared_ptr<Node> l_StartNode = std::make_shared<Node>(Node(1, 0, in_Start));
 	std::shared_ptr<Node> l_EndNode = std::make_shared<Node>(Node(1, 0, in_Goal));
 
 	InsertNode(l_StartNode, 1);
 	InsertNode(l_EndNode, 1);
 
-	if(AStar(l_StartNode, l_EndNode, 1, EuclideanDistance()) < std::numeric_limits<double>::infinity())
+	if(m_Paths[l_StartNode][l_EndNode] == std::vector<std::shared_ptr<Node>>())
+		AStar(l_StartNode, l_EndNode, 1, EuclideanDistance());
+
+	std::vector<Node> l_AbstractPath;
+	std::for_each(m_Paths[l_StartNode][l_EndNode].begin(), m_Paths[l_StartNode][l_EndNode].end(), 
+		[&l_AbstractPath](const std::shared_ptr<Node> & in_Node)
 	{
+		l_AbstractPath.push_back(*in_Node);
+	});
+	return l_AbstractPath;
+}
 
-	}
+std::vector<Vector2> Navigator::ComputeConcretePath(const Node & in_StartNode, const Node & in_GoalNode)
+{
+	// Find the cluster which they belong to
+	auto l_ClusterIt = std::find_if(m_Clusters[1].begin(), m_Clusters[1].end(),
+		[&in_StartNode, &in_GoalNode](const Cluster & in_Cluster) -> bool
+	{
+		int found = 0;
+		for(auto l_It = in_Cluster.LevelNodes.begin(); l_It != in_Cluster.LevelNodes.end(); ++l_It)
+		{
+			if(**l_It == in_StartNode)
+			{
+				if(++found == 2)
+					break;
+			}
+			else if(**l_It == in_GoalNode)
+			{
+				if(++found == 2)
+					break;
+			}
+		}
+		return found == 2;
+	});
 
-	// TODO : Smooth/Refine path ?
+	if(l_ClusterIt == m_Clusters[1].end())
+		return std::move(std::vector<Vector2>());
 
-	return in_Goal;
+	std::shared_ptr<Node> l_BaseStart(FindClosestBaseNode(in_StartNode, *l_ClusterIt));
+	std::shared_ptr<Node> l_BaseGoal(FindClosestBaseNode(in_GoalNode, *l_ClusterIt));
+
+	if(m_Paths[l_BaseStart][l_BaseGoal] == std::vector<std::shared_ptr<Node>>())
+		AStar(l_BaseStart, l_BaseGoal, 0, TrivialHeuristic());
+
+	std::vector<Vector2> l_ConcretePath;
+	std::for_each(m_Paths[l_BaseStart][l_BaseGoal].begin(), m_Paths[l_BaseStart][l_BaseGoal].end(), 
+		[&l_ConcretePath](const std::shared_ptr<Node> & in_Node)
+	{
+		l_ConcretePath.push_back(in_Node->Position);
+	});
+	return l_ConcretePath;
+}
+
+std::shared_ptr<Navigator::Node> Navigator::FindClosestBaseNode(const Node & in_Node, const Cluster & in_Cluster) const
+{
+	double l_Distance = std::numeric_limits<double>::infinity();
+	std::shared_ptr<Node> l_ClosestNode;
+	std::for_each(in_Cluster.BaseNodes.begin(), in_Cluster.BaseNodes.end(), 
+		[&l_Distance, &l_ClosestNode, &in_Node](const std::shared_ptr<Node> & in_BaseNode)
+	{
+		if(l_Distance > sqrt(pow(in_BaseNode->Position.x - in_Node.Position.x, 2) + pow(in_BaseNode->Position.y - in_Node.Position.y, 2)))
+			l_ClosestNode = in_BaseNode;
+	});
+
+	return std::move(l_ClosestNode);
+}
+
+void Navigator::ProcessClusters()
+{
+
 }

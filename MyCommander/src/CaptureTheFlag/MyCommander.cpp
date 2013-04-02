@@ -14,6 +14,7 @@
 
 REGISTER_COMMANDER(MyCommander);
 
+const double MyCommander::M_TICKTIME = 80.0;
 const std::string MyCommander::M_QVALUESFILE = "QValues.json";
 
 std::string MyCommander::getName() const
@@ -23,7 +24,7 @@ std::string MyCommander::getName() const
 
 void MyCommander::initialize()
 {
-	// m_Navigator.Init(m_level->blockHeights, m_level->height, m_level->width);
+	//m_Navigator.Init(m_level->blockHeights, m_level->height, m_level->width);
 #ifdef _TRAIN
 	m_Planner.Init(m_game, false);
 #else
@@ -33,19 +34,19 @@ void MyCommander::initialize()
 
 void MyCommander::tick()
 {
-	if(!m_game->match->combatEvents.empty())
+	m_TimeSpent = 0;
+	m_Start = boost::chrono::high_resolution_clock::now();
+
+	for (size_t i = 0; i< m_game->bots_available.size(); ++i)
 	{
-		for (size_t i = 0; i< m_game->bots_available.size(); ++i)
-		{
-			auto l_Bot = m_game->bots_available[i];
-			Planner::State l_CurrentState = GetBotState(l_Bot);
-			Planner::Actions l_Action = m_Planner.GetNextAction(l_Bot, l_CurrentState, m_game->match->scores[m_game->team->name],
-				m_game->match->scores[m_game->enemyTeam->name], m_game->match->combatEvents);
-			ActionToCommand(l_Action, l_Bot);
-		}
+		auto l_Bot = m_game->bots_available[i];
+		Planner::State l_CurrentState = GetBotState(l_Bot);
+		Planner::Actions l_Action = m_Planner.GetNextAction(l_Bot, l_CurrentState, m_game->match->timePassed, m_game->match->combatEvents);
+		ActionToCommand(l_Action, l_Bot);
 	}
 
-    // TODO : Process continuous task with the time left (Ex: Cluster construction for HPA*)
+	//m_Navigator.ProcessClusters(M_TICKTIME 
+	//	- boost::chrono::duration<double, boost::milli>(boost::chrono::high_resolution_clock::now()-m_Start).count());
 }
 
 void MyCommander::shutdown() 
@@ -92,7 +93,6 @@ Planner::State MyCommander::GetBotState(const BotInfo* in_Bot)
 
 void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInfo* in_Bot)
 {
-	// TODO : Call the Navigator for the path
 	switch (in_Action)
 	{
 		case Planner::GetEnemyFlag:
@@ -104,8 +104,7 @@ void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInf
 		case Planner::WaitEnemyBase:
 		{
 			// If far -> attack toward enemy base
-			if(sqrt(pow(m_game->enemyTeam->flagScoreLocation.x - in_Bot->position->x, 2) + 
-				pow(m_game->enemyTeam->flagScoreLocation.y - in_Bot->position->y, 2)) > 0.f)
+			if(in_Bot->position->squaredDistance(m_game->team->flag->position) > 1.f)
 			{
 				std::cout << in_Bot->name << " : WaitEnemyBase/Attack" << std::endl;
 				issue(new AttackCommand(in_Bot->name, m_game->enemyTeam->flagScoreLocation, m_game->enemyTeam->flagScoreLocation));
@@ -124,7 +123,6 @@ void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInf
 		}
 		case Planner::KillFlagCarrier:
 		{
-			// TODO : Redo to intercept flag carrier
 			std::cout << in_Bot->name << " : KillFlagCarrier" << std::endl;
 			if(m_game->team->flag->carrier)
 				issue(new AttackCommand(in_Bot->name, m_game->team->flag->position, m_game->team->flag->position));
@@ -132,49 +130,25 @@ void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInf
 		}
 		case Planner::Defend:
 		{
-			if(m_game->team->flag->carrier) // Own flag is in enemies' hand
+			if(in_Bot->position->squaredDistance(m_game->team->flag->position) > 1.f)
 			{
-				if(sqrt(pow(m_game->enemyTeam->flagScoreLocation.x - in_Bot->position->x, 2) + 
-					pow(m_game->enemyTeam->flagScoreLocation.y - in_Bot->position->y, 2)) > 0.f)
-				{
-					std::cout << in_Bot->name << " : Defend/ChargeEnemy " << std::endl;
-					issue(new ChargeCommand(in_Bot->name, m_game->enemyTeam->flagScoreLocation));
-				}
-				else
-				{
-					std::cout << in_Bot->name << " : Defend/CampEnemy" << std::endl;
-					DefendCommand::FacingDirectionVector l_FacingDirections;
-					l_FacingDirections.push_back(std::make_pair(*(in_Bot->facingDirection), 1.f));
-					l_FacingDirections.push_back(std::make_pair(Vector2(in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
-					l_FacingDirections.push_back(std::make_pair(Vector2(-in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
-					l_FacingDirections.push_back(std::make_pair(-Vector2(in_Bot->facingDirection->x, in_Bot->facingDirection->y), 1.f));
-					issue(new DefendCommand(in_Bot->name, l_FacingDirections));
-				}
+				std::cout << in_Bot->name << " : Defend/ChargeEnemy " << std::endl;
+				issue(new ChargeCommand(in_Bot->name, m_game->team->flag->position));
 			}
-			else // Own flag is at our base
+			else
 			{
-				if(sqrt(pow(m_game->team->flagSpawnLocation.x - in_Bot->position->x, 2) + 
-					pow(m_game->team->flagSpawnLocation.y - in_Bot->position->y, 2)) > 0.f)
-				{
-					std::cout << in_Bot->name << " : Defend/GetBack" << std::endl;
-					issue(new AttackCommand(in_Bot->name, m_game->team->flagSpawnLocation, m_game->team->flagSpawnLocation));
-				}
-				else
-				{
-					std::cout << in_Bot->name << " : Defend/DefendBase" << std::endl;
-					DefendCommand::FacingDirectionVector l_FacingDirections;
-					l_FacingDirections.push_back(std::make_pair(*(in_Bot->facingDirection), 1.f));
-					l_FacingDirections.push_back(std::make_pair(Vector2(in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
-					l_FacingDirections.push_back(std::make_pair(Vector2(-in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
-					l_FacingDirections.push_back(std::make_pair(-Vector2(in_Bot->facingDirection->x, in_Bot->facingDirection->y), 1.f));
-					issue(new DefendCommand(in_Bot->name, l_FacingDirections));
-				}
+				std::cout << in_Bot->name << " : Defend/CampEnemy" << std::endl;
+				DefendCommand::FacingDirectionVector l_FacingDirections;
+				l_FacingDirections.push_back(std::make_pair(*(in_Bot->facingDirection), 1.f));
+				l_FacingDirections.push_back(std::make_pair(Vector2(in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
+				l_FacingDirections.push_back(std::make_pair(Vector2(-in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
+				l_FacingDirections.push_back(std::make_pair(-Vector2(in_Bot->facingDirection->x, in_Bot->facingDirection->y), 1.f));
+				issue(new DefendCommand(in_Bot->name, l_FacingDirections));
 			}
 			break;
 		}
 		case Planner::SupportFlagCarrier:
 		{
-			// TODO : Better translation to low level instruction once the Navigator is done
 			std::cout << in_Bot->name << " : SupportFlagCarrier" << std::endl;
 			if(m_game->team->flag->carrier)
 				issue(new AttackCommand(in_Bot->name, m_game->team->flagScoreLocation, m_game->team->flag->carrier->position));
@@ -191,4 +165,10 @@ void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInf
 			break;
 		}
 	}
+}
+
+void MyCommander::Reset()
+{
+	m_Navigator.Reset();
+	m_Planner.ResetQValues();
 }

@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iterator>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -31,8 +32,8 @@ inline double ComputeMean(std::vector<double>& in_Durations)
 
 inline std::vector<double> ToVectorOfDouble(const std::vector<boost::chrono::duration<double, boost::milli>> & l_Durations)
 {
-	std::vector<double> l_Times(100);
-	std::transform(l_Durations.begin(), l_Durations.end(), l_Times.begin(), 
+	std::vector<double> l_Times;
+	std::transform(l_Durations.begin(), l_Durations.end(), std::back_inserter(l_Times), 
 		[](const boost::chrono::duration<double, boost::milli>& in_Duration)
 	{
 		return in_Duration.count();

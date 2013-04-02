@@ -18,9 +18,12 @@
 class MyCommander : public Commander
 {
 private:
+	double m_TimeSpent;
+	static const double M_TICKTIME;
 	static const std::string M_QVALUESFILE;
 	Navigator m_Navigator;
 	Planner m_Planner;
+	boost::chrono::high_resolution_clock::time_point m_Start;
 
 private:
 	Planner::State GetBotState(const BotInfo* in_Bot);
@@ -33,7 +36,7 @@ public:
     virtual void tick();
     virtual void shutdown();
 	void ActionToCommand(const Planner::Actions in_Action, const BotInfo* in_Bot);
-
+	void Reset();
 };
 
 #endif // MY_COMMANDER_H

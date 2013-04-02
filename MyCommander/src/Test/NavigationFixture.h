@@ -20,13 +20,13 @@
 */
 struct NavigationFixture
 {
+	static const double MAX_INIT_TIME;
 	static const double MAX_SEARCH_TIME;
 
 	Navigator m_Nav;
 
 	std::unique_ptr<LevelInfo> m_SmallLevel;
 	std::unique_ptr<LevelInfo> m_MediumLevel;
-	std::unique_ptr<LevelInfo> m_LargeLevel;
 
 	Vector2 m_StartPos;
 	Vector2 m_GoalPos;
@@ -35,7 +35,6 @@ struct NavigationFixture
 	{
 		std::string l_SmallLevelStr = ReadAllFile("SmallLevel.json");
 		std::string l_MediumLevelStr = ReadAllFile("MediumLevel.json");
-		std::string l_LargeLevelStr = ReadAllFile("LargeLevel.json");
 		
 		json_spirit::mValue l_SmallLevelValue;
 		json_spirit::mValue l_MediumLevelValue;
@@ -43,32 +42,43 @@ struct NavigationFixture
 
 		json_spirit::read_string(l_SmallLevelStr, l_SmallLevelValue);
 		json_spirit::read_string(l_MediumLevelStr, l_MediumLevelValue);
-		json_spirit::read_string(l_LargeLevelStr, l_LargeLevelValue);
 
 		m_SmallLevel = fromJSON<LevelInfo>(l_SmallLevelValue);
 		m_MediumLevel = fromJSON<LevelInfo>(l_MediumLevelValue);
-		m_LargeLevel = fromJSON<LevelInfo>(l_LargeLevelValue);
 	}
 
-	bool TestPerformance()
+	bool TestPerformance(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width,
+		const int in_MaxEntranceWidth = 3)
 	{
-		std::vector<boost::chrono::duration<double, boost::milli>> l_Durations(100);
+		std::vector<boost::chrono::duration<double, boost::milli>> l_AbstractDurations(100);
+		std::vector<boost::chrono::duration<double, boost::milli>> l_ConcreteDurations;
 		boost::chrono::high_resolution_clock::time_point l_Start;
 		
 		for(int i = 0; i < 100; ++i)
 		{
+			m_Nav.Init(in_Level, in_Length, in_Width, in_MaxEntranceWidth);
 			l_Start = boost::chrono::high_resolution_clock::now();
-//			m_Nav.GetBestDirection(m_StartPos, m_GoalPos);
-			l_Durations[i] = boost::chrono::high_resolution_clock::now() - l_Start;
+			std::vector<Navigator::Node> l_AbstractPath(m_Nav.ComputeAbstractPath(m_StartPos, m_GoalPos));
+			l_AbstractDurations[i] = boost::chrono::high_resolution_clock::now() - l_Start;
+
+			std::vector<Vector2> l_ConcretePath;
+			for(unsigned j = 0; j < l_AbstractPath.size()-1; ++j)
+			{
+				l_Start = boost::chrono::high_resolution_clock::now();
+				vector<Vector2> l_Path(m_Nav.ComputeConcretePath(l_AbstractPath[j], l_AbstractPath[j+1]));
+				l_ConcreteDurations.push_back(boost::chrono::high_resolution_clock::now() - l_Start);
+			}
+			m_Nav.Reset();
 		}
 
-		std::vector<double> l_Times = ToVectorOfDouble(l_Durations);
+		std::vector<double> l_AbstractTimes(ToVectorOfDouble(l_AbstractDurations));
+		std::vector<double> l_ConcreteTimes(ToVectorOfDouble(l_ConcreteDurations));
 
-		return ComputeMean(l_Times) < MAX_SEARCH_TIME;
+		return ComputeMean(l_AbstractTimes) < MAX_SEARCH_TIME && ComputeMean(l_ConcreteTimes) < MAX_SEARCH_TIME;
 	}
 };
 
-// TODO : Need something a bit more specific?
 const double NavigationFixture::MAX_SEARCH_TIME = 80.0;
+const double NavigationFixture::MAX_INIT_TIME = 5000.0;
 
 #endif // NAVIGATION_FIXTURE_H

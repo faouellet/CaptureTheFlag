@@ -61,7 +61,6 @@ struct PlanningFixture
 		return ComputeMean(l_Times) < MAX_DECISION_TIME;
 	}
 
-	// TODO : Is there no other way than to use the dictionnaries ? Should find a way so that we don't have to use strings...
 	Planner::State GetBotState(const std::unique_ptr<GameInfo> & in_GameInfo, const std::unique_ptr<BotInfo> & in_Bot)
 	{
 		Planner::State l_State = 0;
@@ -98,7 +97,6 @@ struct PlanningFixture
 	}
 };
 
-// TODO : Find something more appropriate than a tick time
 const double PlanningFixture::MAX_DECISION_TIME = 80.0;
 
 const Planner::State PlanningFixture::M_INITSTATE = 5;

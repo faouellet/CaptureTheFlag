@@ -89,6 +89,7 @@
     <ClCompile Include="OnlineCommanderTests.cpp" />
     <ClCompile Include="NavigationTests.cpp" />
     <ClCompile Include="PlanningTests.cpp" />
+    <ClCompile Include="ResumableTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NavigationFixture.h" />
@@ -99,9 +100,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="GameInit.json" />
-    <None Include="LargeGameTick.json" />
     <None Include="MediumGameTick.json" />
-    <None Include="LargeLevel.json" />
     <None Include="MediumLevel.json" />
     <None Include="Perf.txt" />
     <None Include="QValues.json" />

@@ -16,7 +16,6 @@ struct Command
 {
 	// NB : Added {} so it could link with my test project. It seems that
 	// giving this destructor a body in another file was the source of the error.
-	// TODO : Make a macro maybe for test mode/competition mode
 	virtual ~Command() = 0 {}
 };
 

@@ -29,30 +29,10 @@ NetworkCommanderClient::NetworkCommanderClient(tcp::socket& socket, const std::s
     ,   m_bufferMem()
 {
     m_bufferMem.reserve(1024 * 1024);
-
-#ifdef _LOG_PERF
-	// A game is 5 minutes long and a tick occurs about every 80 milliseconds
-	// => (5 * 60) / 0.08 = 3750
-	// And I round it up just to be sure no reallocation occurs when the game is playing
-	m_Durations.resize(4000);
-#endif
 }
 
 
-NetworkCommanderClient::~NetworkCommanderClient() 
-{
-#ifdef _LOG_PERF
-	std::ofstream l_FileStream("Perf.txt", std::ios::out | std::ios::binary);
-	if(l_FileStream.is_open())
-	{
-		for(unsigned i = 0; i < m_Durations.size(); ++i)
-		{
-			l_FileStream << "Tick:" << i << " Duration: " << m_Durations[i].count() << std::endl;
-		}
-		l_FileStream.close();
-	}
-#endif
-}
+NetworkCommanderClient::~NetworkCommanderClient() { }
 
 void NetworkCommanderClient::performHandshaking()
     {
@@ -98,7 +78,6 @@ void NetworkCommanderClient::run()
 
 #ifdef _LOG_PERF
 	boost::chrono::high_resolution_clock::time_point l_Start;
-	int l_Index = 0;
 #endif
 
     for (;;)
@@ -127,13 +106,22 @@ void NetworkCommanderClient::run()
                 std::string gameInfoJson = readLine();
                 updateCommanderGameData(gameInfoJson);
                 tickRequired = true;
-				// HACK : It seems MyCommander is getting flooded by messages
-				break;
+				//break;
             }
             else if (message == "<shutdown>")
             {
                 assert(initialized);
                 m_commander->shutdown();
+#ifdef _LOG_PERF
+				std::ofstream l_FileStream("Perf.txt", std::ios::out | std::ios::binary);
+				if(l_FileStream.is_open())
+				{
+					for(unsigned i = 0; i < m_Durations.size(); ++i)
+					{
+						l_FileStream << "Tick:" << i << " Duration: " << m_Durations[i].count() << std::endl;
+					}
+				}
+#endif
                 return;
             }
             else
@@ -153,7 +141,7 @@ void NetworkCommanderClient::run()
             sendCommands();
             tickRequired = false;
 #ifdef _LOG_PERF
-			m_Durations[l_Index++] = boost::chrono::high_resolution_clock::now() - l_Start;
+			m_Durations.push_back(boost::chrono::high_resolution_clock::now() - l_Start);
 #endif
         }
           
@@ -215,8 +203,8 @@ std::string NetworkCommanderClient::readLine()
 void NetworkCommanderClient::initializeCommanderGameData(const std::string&  levelInfoJson, const std::string&  gameInfoJson)
 {
     json_spirit::mValue value;
-	// NOTE : Changed it to 5
-	boost::this_thread::sleep(boost::posix_time::seconds(5));
+	// NOTE : Why was this needed ?
+	 boost::this_thread::sleep(boost::posix_time::seconds(20));
     json_spirit::read_string(levelInfoJson, value);
     m_commander->m_level = fromJSON<LevelInfo>(value);
 

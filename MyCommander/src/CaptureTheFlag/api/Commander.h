@@ -60,7 +60,7 @@ public:
 	/**
 	* HACK
 	*/
-	void setPrivates(std::unique_ptr<GameInfo> game, std::unique_ptr<LevelInfo> level)
+	void setPrivates(std::unique_ptr<GameInfo> & game, std::unique_ptr<LevelInfo> & level)
 	{
 		game->team->flag = game->flags["BlueFlag"].get();
 		game->enemyTeam->flag = game->flags["RedFlag"].get();

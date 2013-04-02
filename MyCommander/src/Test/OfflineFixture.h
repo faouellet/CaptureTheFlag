@@ -31,6 +31,9 @@ struct OfflineFixture
 	json_spirit::mValue m_MediumLevelValue;
 	json_spirit::mValue m_LargeLevelValue;
 
+	std::unique_ptr<LevelInfo> m_SmallLevel;
+	std::unique_ptr<LevelInfo> m_MediumLevel;
+
 	MyCommander m_Cmd;
 
 	OfflineFixture()
@@ -38,20 +41,19 @@ struct OfflineFixture
 		std::string l_GameInitStr = ReadAllFile("GameInit.json");
 		std::string l_SmallGameTickStr = ReadAllFile("SmallGameTick.json");
 		std::string l_MediumGameTickStr = ReadAllFile("MediumGameTick.json");
-		std::string l_LargeGameTickStr = ReadAllFile("LargeGameTick.json");
 
 		std::string l_SmallLevelStr = ReadAllFile("SmallLevel.json");
 		std::string l_MediumLevelStr = ReadAllFile("MediumLevel.json");
-		std::string l_LargeLevelStr = ReadAllFile("LargeLevel.json");
 
 		json_spirit::read_string(l_GameInitStr, m_GameInitValue);
 		json_spirit::read_string(l_SmallGameTickStr, m_SmallGameTickValue);
 		json_spirit::read_string(l_MediumGameTickStr, m_MediumGameTickValue);
-		json_spirit::read_string(l_LargeGameTickStr, m_LargeGameTickValue);
 
 		json_spirit::read_string(l_SmallLevelStr, m_SmallLevelValue);
 		json_spirit::read_string(l_MediumLevelStr, m_MediumLevelValue);
-		json_spirit::read_string(l_LargeLevelStr, m_LargeLevelValue);
+
+		m_SmallLevel = fromJSON<LevelInfo>(m_SmallLevelValue);
+		m_MediumLevel = fromJSON<LevelInfo>(m_MediumLevelValue);
 	}
 
 	bool TestInitPerformance()
@@ -64,6 +66,7 @@ struct OfflineFixture
 			l_Start = boost::chrono::high_resolution_clock::now();
 			m_Cmd.initialize(); 
 			l_Durations[i] = boost::chrono::high_resolution_clock::now() - l_Start;
+			m_Cmd.Reset();
 		}
 
 		std::vector<double> l_Times = ToVectorOfDouble(l_Durations);
@@ -88,7 +91,7 @@ struct OfflineFixture
 		return ComputeMean(l_Times) < MAX_TIME_TICK;
 	}
 
-	std::unique_ptr<GameInfo> InitGameInfo(const json_spirit::mValue & in_GameValue) const
+	std::unique_ptr<GameInfo> InitGameInfo(const json_spirit::mValue & in_GameValue, const std::unique_ptr<LevelInfo> & in_Level) const
 	{
 		std::unique_ptr<GameInfo> l_GameInfo = fromJSON<GameInfo>(in_GameValue);
 
@@ -102,6 +105,12 @@ struct OfflineFixture
 			l_GameInfo->bots_available.push_back(l_Bot);
 		}
 
+		l_GameInfo->team->flagSpawnLocation = in_Level->flagSpawnLocations[l_GameInfo->team->name];
+		for(auto l_BotIt = l_GameInfo->bots_available.begin(); l_BotIt != l_GameInfo->bots_available.end(); ++l_BotIt)
+		{
+			(*l_BotIt)->position = l_GameInfo->team->botSpawnArea.first;
+			(*l_BotIt)->facingDirection = l_GameInfo->team->botSpawnArea.first;
+		}
 		return l_GameInfo;
 	}
 };

@@ -34,6 +34,7 @@
     <ClInclude Include="MyCommander.h" />
     <ClInclude Include="Navigator.h" />
     <ClInclude Include="Planner.h" />
+    <ClInclude Include="Resumable.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{03D445E7-E148-43A7-8CBB-C6B3B7D36290}</ProjectGuid>
@@ -74,7 +75,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\dependencies\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0501;BOOST_ALL_NO_LIB=1;WIN32;_DEBUG;_CONSOLE;_TRAIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0501;BOOST_ALL_NO_LIB=1;WIN32;_DEBUG;_CONSOLE;_TRAIN;_LOG_PERF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

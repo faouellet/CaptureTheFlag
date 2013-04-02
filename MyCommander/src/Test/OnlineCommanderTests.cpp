@@ -58,9 +58,9 @@ BOOST_AUTO_TEST_CASE( OnlineTest )
 
 	std::string l_FileContent = ReadAllFile("Perf.txt");
 	std::vector<std::string> l_Matches(std::sregex_token_iterator(l_FileContent.begin(), l_FileContent.end(), 
-		std::regex("Duration: ([0-9]+)")), std::sregex_token_iterator());
+		std::regex("Duration: ([0-9]+)"), 1), std::sregex_token_iterator());
 
-	std::vector<double> l_Durations;
+	std::vector<double> l_Durations(l_Matches.size());
 	std::transform(l_Matches.begin(), l_Matches.end(), l_Durations.begin(), 
 		[](const std::string & in_Match){ return atof(in_Match.c_str()); });
 

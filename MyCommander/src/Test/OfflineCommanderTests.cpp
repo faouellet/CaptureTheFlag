@@ -21,42 +21,30 @@ BOOST_FIXTURE_TEST_SUITE( OfflineCommanderTestSuite, OfflineFixture )
 
 BOOST_AUTO_TEST_CASE( SmallInitTest )
 {
-	m_Cmd.setPrivates(InitGameInfo(m_GameInitValue), fromJSON<LevelInfo>(m_SmallLevelValue));
+	//m_Cmd.setPrivates(InitGameInfo(m_GameInitValue), m_SmallLevel);
 
-	BOOST_REQUIRE(TestInitPerformance());
+	//BOOST_REQUIRE(TestInitPerformance());
 }
 
 BOOST_AUTO_TEST_CASE( MediumInitTest )
 {
-	m_Cmd.setPrivates(InitGameInfo(m_GameInitValue), fromJSON<LevelInfo>(m_MediumLevelValue));
+	//m_Cmd.setPrivates(InitGameInfo(m_GameInitValue), m_MediumLevel);
 
-	BOOST_REQUIRE(TestInitPerformance());
-}
-
-BOOST_AUTO_TEST_CASE( LargeInitTest )
-{
-	m_Cmd.setPrivates(InitGameInfo(m_GameInitValue), fromJSON<LevelInfo>(m_LargeLevelValue));
-
-	BOOST_REQUIRE(TestInitPerformance());
+	//BOOST_REQUIRE(TestInitPerformance());
 }
 
 BOOST_AUTO_TEST_CASE( SmallTickTest )
 {
-	m_Cmd.setPrivates(InitGameInfo(m_SmallGameTickValue), fromJSON<LevelInfo>(m_SmallLevelValue));
+	m_Cmd.setPrivates(InitGameInfo(m_SmallGameTickValue, m_SmallLevel), m_SmallLevel);
+	m_Cmd.initialize();
 
 	BOOST_REQUIRE(TestTickPerformance());
 }
 
 BOOST_AUTO_TEST_CASE( MediumTickTest )
 {
-	m_Cmd.setPrivates(InitGameInfo(m_MediumGameTickValue), fromJSON<LevelInfo>(m_MediumLevelValue));
-
-	BOOST_REQUIRE(TestTickPerformance());
-}
-
-BOOST_AUTO_TEST_CASE( LargeTickTest )
-{
-	m_Cmd.setPrivates(InitGameInfo(m_LargeGameTickValue), fromJSON<LevelInfo>(m_LargeLevelValue));
+	m_Cmd.setPrivates(InitGameInfo(m_MediumGameTickValue, m_MediumLevel), m_MediumLevel);
+	m_Cmd.initialize();
 
 	BOOST_REQUIRE(TestTickPerformance());
 }

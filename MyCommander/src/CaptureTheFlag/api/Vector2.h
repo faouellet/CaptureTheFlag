@@ -478,12 +478,31 @@ public:
         return o;
     }
 
-	// TODO : Really ??
-	inline friend std::ostream& operator<<(std::ostream& o, const char* c)
-    {
-        o << std::string(c);
-        return o;
-    }
+	/*
+	* Author : Felix-Antoine Ouellet
+	* CIP :	   09 137 551
+	*
+	* Helper function to help figure out clusters' adjacency
+	*/
+	inline bool IsAtTheRightOf(const Vector2 & in_Vector)
+	{
+		return x == in_Vector.x+1 && y == in_Vector.y;
+	}
+
+	inline bool IsAtTheLeftOf(const Vector2 & in_Vector)
+	{
+		return x == in_Vector.x-1 && y == in_Vector.y;
+	}
+
+	inline bool IsBelow(const Vector2 & in_Vector)
+	{
+		return x == in_Vector.x && y == in_Vector.y+1;
+	}
+
+	inline bool IsAbove(const Vector2 & in_Vector)
+	{
+		return x == in_Vector.x && y == in_Vector.y-1;
+	}
 };
 
 #endif // VECTOR2_H

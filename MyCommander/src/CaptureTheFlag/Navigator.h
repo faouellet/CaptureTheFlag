@@ -23,6 +23,8 @@ class IHeuristic;
 */
 class Navigator
 {
+	struct Cluster;
+
 public:
 	struct Node
 	{
@@ -65,11 +67,20 @@ private:
 		}
 	};
 
+	struct PositionComparer
+	{
+		bool operator()(const std::shared_ptr<Node> & in_Node1, const std::shared_ptr<Node> & in_Node2)
+		{
+			return in_Node1->Position <= in_Node2->Position;
+		}
+	};
+
 private:
 	typedef std::map<std::shared_ptr<Node>, std::map<std::shared_ptr<Node>, double, NodeComparer>, NodeComparer> Graph;
 	typedef std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>> Gate;
 	typedef std::vector<std::shared_ptr<Node>>::iterator NodeIterator;
 	typedef std::vector<std::shared_ptr<Node>>::const_iterator ConstNodeIterator;
+	typedef std::vector<std::shared_ptr<Node>> NodeVector;
 
 private:
 	enum Adjacency { Above, Below, Left, Right };
@@ -79,13 +90,14 @@ private:
 		int Level;
 		int Length;
 		int Width;
-		std::vector<std::shared_ptr<Node>> BaseNodes;
-		std::vector<std::shared_ptr<Node>> LevelNodes;
+		NodeVector BaseNodes;
+		NodeVector LevelNodes;
 		Graph LocalGraph;
+		Vector2 MinPos;
+		Vector2 MaxPos;
 
 		Cluster(const int in_Level = 0, const int in_Length = 1, const int in_Width = 1, 
-			const std::vector<std::shared_ptr<Node>> & in_BaseNodes = std::vector<std::shared_ptr<Node>>(),
-			const std::vector<std::shared_ptr<Node>> & in_LevelNodes = std::vector<std::shared_ptr<Node>>()) :
+			const NodeVector & in_BaseNodes = NodeVector(),	const NodeVector & in_LevelNodes = NodeVector()) :
 		Level(in_Level), Length(in_Length), Width(in_Width), BaseNodes(in_BaseNodes), LevelNodes(in_LevelNodes) { }
 
 		Cluster(Cluster && in_Cluster) : Level(std::move(in_Cluster.Level)), Length(std::move(in_Cluster.Length)),
@@ -105,7 +117,7 @@ private:
 		std::vector<Gate> Gates;
 
 		Entrance(const Cluster & in_Cluster1, const Cluster & in_Cluster2, 
-			const std::vector<std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>>> in_Gates) :
+			const std::vector<Gate> in_Gates) :
 			Clusters(std::make_pair<Cluster, Cluster>(in_Cluster1, in_Cluster2)), Gates(in_Gates) { }
 
 		Entrance(Entrance && in_Entrance) : Clusters(std::move(in_Entrance.Clusters)), Gates(std::move(in_Entrance.Gates)) {}
@@ -130,8 +142,8 @@ public:
 	void Init(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width, const int in_MaxEntranceWidth = 3);
 	void Reset();
 
-	std::vector<Node> ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal);
-	std::vector<Vector2> ComputeConcretePath(const Node & in_StartNode, const Node & in_GoalNode);
+	NodeVector ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal);
+	std::vector<Vector2> ComputeConcretePath(std::shared_ptr<Node> && in_StartNode, std::shared_ptr<Node> && in_GoalNode);
 	void ProcessClusters(const double in_Time);
 
 private:
@@ -148,12 +160,11 @@ private:
 	void BuildGraph();
 	void Preprocess();
 	void ConnectLevelNodes();
-	void BuildLocalGraph(const int in_Length, const int in_Width, const std::vector<std::shared_ptr<Node>> & in_Nodes, Graph & in_LocalGraph);
+	void BuildLocalGraph(const int in_Length, const int in_Width, const NodeVector & in_Nodes, Graph & in_LocalGraph);
 	
 	void AddIntraEdges(const double in_TimeLimit);
 	
 	void ConnectToBorder(const std::shared_ptr<Node> & in_Node, Cluster & in_Cluster);
-	void InsertNode(const std::shared_ptr<Node> & in_Node, const int in_Level);
 	double SearchForDistance(const std::shared_ptr<Node> & in_Node1, const std::shared_ptr<Node> & in_Node2, const Cluster & in_Cluster);
 
 	NodeIterator FindCorrespondingBaseNode(Cluster & in_Cluster, const std::shared_ptr<Node> & in_LevelNode) const;

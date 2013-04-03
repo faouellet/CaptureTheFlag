@@ -381,6 +381,13 @@ public:
         return false;
     }
 
+	inline bool operator <= ( const Vector2 & rhs ) const
+	{
+		if( x <= rhs.x && y <= rhs.y )
+            return true;
+        return false;
+	}
+
     /** Returns true if the vector's scalar components are all smaller
         that the ones of the vector it is compared against.
     */
@@ -477,32 +484,6 @@ public:
         o << "Vector2(" << v.x << ", " << v.y <<  ")";
         return o;
     }
-
-	/*
-	* Author : Felix-Antoine Ouellet
-	* CIP :	   09 137 551
-	*
-	* Helper function to help figure out clusters' adjacency
-	*/
-	inline bool IsAtTheRightOf(const Vector2 & in_Vector)
-	{
-		return x == in_Vector.x+1 && y == in_Vector.y;
-	}
-
-	inline bool IsAtTheLeftOf(const Vector2 & in_Vector)
-	{
-		return x == in_Vector.x-1 && y == in_Vector.y;
-	}
-
-	inline bool IsBelow(const Vector2 & in_Vector)
-	{
-		return x == in_Vector.x && y == in_Vector.y+1;
-	}
-
-	inline bool IsAbove(const Vector2 & in_Vector)
-	{
-		return x == in_Vector.x && y == in_Vector.y-1;
-	}
 };
 
 #endif // VECTOR2_H

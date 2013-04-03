@@ -21,12 +21,12 @@ void Navigator::Init(const std::unique_ptr<float[]> & in_Level, const int in_Len
 	int l_X = 0, l_Y = 0;
 	m_Clusters.push_back(std::vector<Cluster>(1, Cluster()));
 	auto l_Cluster = m_Clusters[0].begin();
-	std::for_each(in_Level.get(), in_Level.get() + in_Length * in_Width, [&l_Cluster, &in_Length, &l_X, &l_Y, this](const float in_Block)
+	std::for_each(in_Level.get(), in_Level.get() + in_Length * in_Width, [&l_Cluster, &in_Width, &l_X, &l_Y, this](const float in_Block)
 	{
 		// The first level cluster is in fact the whole map
 		l_Cluster->LevelNodes.push_back(std::make_shared<Node>(Navigator::Node(0, static_cast<int>(in_Block), Vector2(static_cast<float>(l_X), static_cast<float>(l_Y)))));
 		
-		if(l_X < in_Length - 1)
+		if(l_X < in_Width - 1)
 		{
 			++l_X;
 		}
@@ -61,6 +61,7 @@ double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::share
 	if(in_Start->Height || in_Goal->Height || in_Start == in_Goal)
 		return std::numeric_limits<double>::infinity();
 
+	
 	std::multimap<double, std::shared_ptr<Node>> l_Closed;
 	std::multimap<double, std::shared_ptr<Node>> l_Opened;
 	l_Opened.insert(std::make_pair(0.0, in_Start));
@@ -78,7 +79,7 @@ double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::share
 
 		if(l_CurrentNode == in_Goal)
 		{
-			std::vector<std::shared_ptr<Node>> l_Path;
+			NodeVector l_Path;
 			
 			// Reverse the parents' chain to get the path
 			std::shared_ptr<Node> l_ParentNode = l_Parents[l_CurrentNode];
@@ -91,9 +92,9 @@ double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::share
 				l_ParentNode = l_Parents[l_ParentNode];
 			}
 			l_Path.push_back(in_Start);
-			std::reverse(l_Path.begin(), l_Path.end());
 
-			// Cache the path
+			m_Paths[in_Goal][in_Start] = l_Path;
+			std::reverse(l_Path.begin(), l_Path.end());
 			m_Paths[in_Start][in_Goal] = l_Path;
 
 			return l_RealCosts[l_CurrentNode];
@@ -103,11 +104,7 @@ double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::share
 		{
 			for(auto l_NeighborIt = in_Graph.at(l_CurrentNode).begin(); l_NeighborIt != in_Graph.at(l_CurrentNode).end(); ++l_NeighborIt)
 			{
-				// Transition between diagonal nodes is 1.42 and 1 for vertical/horizontal nodes
-				double l_TransitionCost = (l_NeighborIt->first->Position.x == l_CurrentNode->Position.x 
-					|| l_NeighborIt->first->Position.y == l_CurrentNode->Position.y) ? 1.0 : 1.42;
-
-				double l_TentativeRealCost = l_RealCosts[l_CurrentNode] + l_TransitionCost;
+				double l_TentativeRealCost = l_RealCosts[l_CurrentNode] + l_NeighborIt->second;
 
 				auto l_ClosedNodeIt = std::find_if(l_Closed.begin(), l_Closed.end(), 
 					[&l_NeighborIt](const std::pair<double, std::shared_ptr<Node>> & in_Node)
@@ -115,8 +112,16 @@ double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::share
 					return *in_Node.second == *l_NeighborIt->first;
 				});
 
-				if(l_ClosedNodeIt != l_Closed.end() && l_TentativeRealCost >= l_RealCosts[l_NeighborIt->first])
+				double l_HeuristicCost = in_Heuristic(*l_NeighborIt->first, *in_Goal);
+				if(l_ClosedNodeIt != l_Closed.end())
+				{
+					if(l_TentativeRealCost + l_HeuristicCost <= l_NeighborIt->second)
+					{
+						l_Opened.insert(*l_ClosedNodeIt);
+						l_Closed.erase(l_ClosedNodeIt);
+					}
 					continue;
+				}
 
 				auto l_OpenedIt = std::find_if(l_Opened.begin(), l_Opened.end(), 
 					[&l_NeighborIt](const std::pair<double, std::shared_ptr<Node>> & in_Node)
@@ -124,13 +129,23 @@ double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::share
 					return *in_Node.second == *l_NeighborIt->first;
 				});
 
+				if(l_OpenedIt != l_Opened.end())
+				{
+					if(l_TentativeRealCost + l_HeuristicCost <= l_NeighborIt->second)
+					{
+						l_Opened.insert(*l_OpenedIt);
+						l_Closed.erase(l_OpenedIt);
+					}
+					continue;
+				}
+
 				if(l_OpenedIt == l_Opened.end() || l_TentativeRealCost < l_RealCosts[l_NeighborIt->first])
 				{
 					l_Parents[l_NeighborIt->first] = l_CurrentNode;
 					l_RealCosts[l_NeighborIt->first] = l_TentativeRealCost;
 					if(l_OpenedIt == l_Opened.end())
 					{
-						l_Opened.insert(std::make_pair(l_RealCosts[l_NeighborIt->first] + in_Heuristic(*l_NeighborIt->first, *in_Goal), l_NeighborIt->first));
+						l_Opened.insert(std::make_pair(l_RealCosts[l_NeighborIt->first] + l_HeuristicCost, l_NeighborIt->first));
 					}
 				}
 			}
@@ -174,25 +189,25 @@ bool Navigator::Adjacent(const Cluster & in_Cluster1, const Cluster & in_Cluster
 	bool l_Ok = false;
  
 	// Cluster1 to the right of Cluster2 ?
-	if(in_Cluster1.BaseNodes[0]->Position.IsAtTheRightOf(in_Cluster2.BaseNodes[in_Cluster2.Length-1]->Position))
+	if(in_Cluster1.MinPos.x == in_Cluster2.MaxPos.x+1 && in_Cluster1.MinPos.y == in_Cluster2.MinPos.y)
 	{
 		l_Ok = true;
 		out_Adjacency = Right;
 	}
 	// Cluster1 below Cluster2 ?
-	else if(in_Cluster1.BaseNodes[0]->Position.IsBelow(in_Cluster2.BaseNodes[(in_Cluster2.Length-1)*in_Cluster2.Width]->Position))
+	else if(in_Cluster1.MinPos.y == in_Cluster2.MaxPos.y+1 && in_Cluster1.MinPos.x == in_Cluster2.MinPos.x)
 	{
 		l_Ok = true;
 		out_Adjacency = Below;
 	}
 	// Cluster1 to left of Cluster2 ?
-	else if(in_Cluster1.BaseNodes[in_Cluster1.Length-1]->Position.IsAtTheLeftOf(in_Cluster2.BaseNodes[0]->Position))
+	else if(in_Cluster1.MaxPos.x == in_Cluster2.MinPos.x-1 && in_Cluster1.MinPos.y == in_Cluster2.MinPos.y)
 	{
 		l_Ok = true;
 		out_Adjacency = Left;
 	}
 	// Cluster1 above Cluster2 ?
-	else if(in_Cluster1.BaseNodes[(in_Cluster1.Length-1)*in_Cluster1.Width]->Position.IsAbove(in_Cluster2.BaseNodes[0]->Position))
+	else if(in_Cluster1.MaxPos.y == in_Cluster2.MinPos.y-1 && in_Cluster1.MinPos.x == in_Cluster2.MinPos.x)
 	{
 		l_Ok = true;
 		out_Adjacency = Above;
@@ -215,7 +230,7 @@ int Navigator::ClusterSize(const int in_Size) const
 	return l_ClusterSize;
 }
 
-void Navigator::BuildLocalGraph(const int in_Length, const int in_Width, const std::vector<std::shared_ptr<Node>> & in_Nodes, Graph & in_LocalGraph)
+void Navigator::BuildLocalGraph(const int in_Length, const int in_Width, const Navigator::NodeVector & in_Nodes, Graph & in_LocalGraph)
 {
 	int l_CurrentNodeIndex = 0;	
 	int l_RightNodeIndex = 0;
@@ -223,47 +238,46 @@ void Navigator::BuildLocalGraph(const int in_Length, const int in_Width, const s
 	int l_DownIndex = 0;
 	int l_DownLeftIndex = 0;
 
-	for(int i  = 0; i < in_Width; ++i)
+	for(int i  = 0; i < in_Length; ++i)
 	{
-		for(int j = 0; j < in_Length; ++j)
+		for(int j = 0; j < in_Width; ++j)
 		{
-			l_CurrentNodeIndex = j + i * in_Length;
+			l_CurrentNodeIndex = j + i * in_Width;
 			l_RightNodeIndex = l_CurrentNodeIndex+1;
-			l_DownRightIndex = (j+1) + (i+1) * in_Length;
-			l_DownIndex = j + (i+1) * in_Length;
-			l_DownLeftIndex = (j-1) + (i+1) * in_Length;
+			l_DownRightIndex = (j+1) + (i+1) * in_Width;
+			l_DownIndex = j + (i+1) * in_Width;
+			l_DownLeftIndex = (j-1) + (i+1) * in_Width;
 			if(!in_Nodes[l_CurrentNodeIndex]->Height)
 			{
 				// Link the right node
-				if(j < in_Length-1 && !in_Nodes[l_CurrentNodeIndex+1]->Height)
+				if(j < in_Width-1 && !in_Nodes[l_CurrentNodeIndex+1]->Height)
 				{
 					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_RightNodeIndex]] = 1.0;
 					in_LocalGraph[in_Nodes[l_RightNodeIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.0;
 				}
 				// Link the down-right node
-				if(j < in_Length-1 && i < in_Width-1 && !in_Nodes[l_DownRightIndex]->Height)
+				if(j < in_Width-1 && i < in_Length-1 && !in_Nodes[l_DownRightIndex]->Height)
 				{
-					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownRightIndex]] = 1.0;
-					in_LocalGraph[in_Nodes[l_DownRightIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.0;
+					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownRightIndex]] = 1.42;
+					in_LocalGraph[in_Nodes[l_DownRightIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.42;
 				}
 				// Link the down node
-				if(i < in_Width-1 && !in_Nodes[l_DownIndex]->Height)
+				if(i < in_Length-1 && !in_Nodes[l_DownIndex]->Height)
 				{
 					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownIndex]] = 1.0;
 					in_LocalGraph[in_Nodes[l_DownIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.0;
 				}
 				// Link the down-left node
-				if(j > 0 && i < in_Width-1 && !in_Nodes[l_DownLeftIndex]->Height)
+				if(j > 0 && i < in_Length-1 && !in_Nodes[l_DownLeftIndex]->Height)
 				{
-					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownLeftIndex]] = 1.0;
-					in_LocalGraph[in_Nodes[l_DownLeftIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.0;
+					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownLeftIndex]] = 1.42;
+					in_LocalGraph[in_Nodes[l_DownLeftIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.42;
 				}
 			}
 		}
 	}
 }
 
-// TODO : Only works for the first layer of clusters for now
 void Navigator::BuildClusters(const int in_Level)
 {
 	int l_Length = m_Clusters[0].begin()->Length;
@@ -282,22 +296,25 @@ void Navigator::BuildClusters(const int in_Level)
 
 	for(auto l_It = m_Clusters[in_Level].begin(); l_It != m_Clusters[in_Level].end(); ++l_It)
 	{
-		for(int i = l_WidthOffset; i < l_ClusterWidth + l_WidthOffset; ++i)
+		for(int i = l_LengthOffset; i < l_ClusterLength + l_LengthOffset; ++i)
 		{
-			for(int j = l_LengthOffset; j < l_ClusterLength + l_LengthOffset; ++j)
+			for(int j = l_WidthOffset; j < l_ClusterWidth + l_WidthOffset; ++j)
 			{
-				l_It->BaseNodes.push_back(m_Clusters[in_Level - 1].begin()->LevelNodes[j + (i * l_Length)]);
+				l_It->BaseNodes.push_back(m_Clusters[in_Level - 1].begin()->LevelNodes[j + (i * l_Width)]);
 			}
 		}
-		if(l_LengthOffset + l_ClusterLength < l_Length)
+		if(l_WidthOffset + l_ClusterWidth < l_Width)
 		{
-			l_LengthOffset += l_ClusterLength;	
+			l_WidthOffset += l_ClusterWidth;	
 		}
 		else
 		{
-			l_LengthOffset = 0;
-			l_WidthOffset += l_ClusterWidth;
+			l_WidthOffset = 0;
+			l_LengthOffset += l_ClusterLength;
 		}
+		auto l_MinMax = std::minmax_element(l_It->BaseNodes.begin(), l_It->BaseNodes.end(), PositionComparer());
+		l_It->MinPos = (*l_MinMax.first)->Position;
+		l_It->MaxPos = (*l_MinMax.second)->Position;
 	}
 }
 
@@ -328,17 +345,22 @@ void Navigator::BuildEntrances(Cluster & in_Cluster1, Cluster & in_Cluster2, con
 	}
 
 	m_Entrances[in_Level-1].push_back(Entrance(in_Cluster1, in_Cluster2, l_Gates));
+	// Removing duplicates in LevelNodes
+	std::set<std::shared_ptr<Node>, NodeComparer> l_Set1(in_Cluster1.LevelNodes.begin(), in_Cluster1.LevelNodes.end());
+	in_Cluster1.LevelNodes = NodeVector(l_Set1.begin(), l_Set1.end());
+	std::set<std::shared_ptr<Node>, NodeComparer> l_Set2(in_Cluster2.LevelNodes.begin(), in_Cluster2.LevelNodes.end());
+	in_Cluster2.LevelNodes = NodeVector(l_Set2.begin(), l_Set2.end());
 }
 
 void Navigator::BuildSideEntrances(Cluster & in_Cluster1, Cluster & in_Cluster2, std::vector<Gate> & out_Gates)
 {
-	std::vector<std::vector<Gate>> l_PotentialGates(in_Cluster1.Width);
+	std::vector<std::vector<Gate>> l_PotentialGates(in_Cluster1.Length);
 	int j = 0;
 
-	for(int i = 0; i < in_Cluster1.Width; ++i)
+	for(int i = 0; i < in_Cluster1.Length; ++i)
 	{
-		int l_Index1 = in_Cluster1.Length + (in_Cluster1.Length * i) - 1;
-		int l_Index2 = in_Cluster2.Length * i;
+		int l_Index1 = (i+1) * in_Cluster1.Width - 1;
+		int l_Index2 = in_Cluster2.Width * i;
 		if(in_Cluster1.BaseNodes[l_Index1]->Height 
 			|| in_Cluster2.BaseNodes[l_Index2]->Height)
 		{
@@ -384,10 +406,10 @@ void Navigator::BuildTopEntrances(Cluster & in_Cluster1, Cluster & in_Cluster2, 
 	int j = 0;
 	int l_Index1 = 0;
 
-	for(int i = 0; i < in_Cluster1.Length; ++i)
+	for(int i = 0; i < in_Cluster1.Width; ++i)
 	{
 		l_Index1 = in_Cluster1.Width*(in_Cluster1.Length-1)+i;
-		if(in_Cluster1.BaseNodes[in_Cluster1.Width * (in_Cluster1.Length - 1) + i]->Height 
+		if(in_Cluster1.BaseNodes[l_Index1]->Height 
 			|| in_Cluster2.BaseNodes[i]->Height)
 		{
 			++j;
@@ -454,7 +476,6 @@ void Navigator::BuildGraph()
 	m_NodesEnd = m_CurrentCluster->BaseNodes.end();
 }
 
-// TODO : Generalize to multiple layers ??
 void Navigator::ConnectLevelNodes()
 {
 	for(m_CurrentCluster = m_Clusters[1].begin(); m_CurrentCluster != m_Clusters[1].end(); ++m_CurrentCluster)
@@ -484,9 +505,7 @@ Navigator::NodeIterator Navigator::FindCorrespondingBaseNode(Cluster & in_Cluste
 	return std::find_if(in_Cluster.BaseNodes.begin(), in_Cluster.BaseNodes.end(), 
 				[&in_Cluster, &in_LevelNode](const std::shared_ptr<Node> & in_Node)
 			{
-				return in_Node->Height == in_LevelNode->Height
-					&& in_Node->Position == in_LevelNode->Position;
-
+				return in_Node->Position == in_LevelNode->Position;
 			});
 }
 
@@ -495,9 +514,7 @@ Navigator::NodeIterator Navigator::FindCorrespondingBaseNode(Cluster & in_Cluste
 	return std::find_if(in_Cluster.BaseNodes.begin(), in_Cluster.BaseNodes.end(), 
 				[&in_Cluster, &in_LevelNode](const std::shared_ptr<Node> & in_Node)
 			{
-				return in_Node->Height == in_LevelNode.Height
-					&& in_Node->Position == in_LevelNode.Position;
-
+				return in_Node->Position == in_LevelNode.Position;
 			});
 }
 
@@ -542,133 +559,99 @@ void Navigator::ConnectToBorder(const std::shared_ptr<Node> & in_Node, Cluster &
 	}
 }
 
-void Navigator::InsertNode(const std::shared_ptr<Node> & in_Node, const int in_Level)
+Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal)
 {
-	for(int i = 1; i <= in_Level; ++i)
-	{
-		auto l_ClusterIt = m_Clusters[in_Level].begin();
-		for(; l_ClusterIt != m_Clusters[in_Level].end(); ++l_ClusterIt)
-		{
-			auto l_MinMax = std::minmax_element(l_ClusterIt->BaseNodes.begin(), l_ClusterIt->BaseNodes.end(), NodeComparer());
-			if((*l_MinMax.first)->Position.x <= in_Node->Position.x && in_Node->Position.x <= ((*l_MinMax.second)->Position.x)
-				&& (*l_MinMax.first)->Position.y <= in_Node->Position.y && in_Node->Position.y <= ((*l_MinMax.second)->Position.y))
-				break;
-		}
-		ConnectToBorder(in_Node, *l_ClusterIt);
-		l_ClusterIt->LevelNodes.push_back(in_Node);
-	}
-}
+	std::cout << in_Start << " " << in_Goal << std::endl;
 
-std::vector<Navigator::Node> Navigator::ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal)
-{
+	if(in_Start == in_Goal)
+		return std::vector<std::shared_ptr<Node>>();
+
 	std::shared_ptr<Node> l_StartNode;
 	std::shared_ptr<Node> l_EndNode;
 	Vector2 l_StartPos(floor(in_Start.x + 0.5f), floor(in_Start.y + 0.5f));
 	Vector2 l_GoalPos(floor(in_Goal.x + 0.5f), floor(in_Goal.y + 0.5f));
 
-	auto l_StartIt = m_Clusters[1].begin();
-	for(; l_StartIt != m_Clusters[1].end(); ++l_StartIt)
-	{
-		auto l_NodesIt = l_StartIt->LevelNodes.begin();
-		for(; l_NodesIt != l_StartIt->LevelNodes.end(); ++l_NodesIt)
-		{
-			if((*l_NodesIt)->Height == 0 && (*l_NodesIt)->Level == 1 && (*l_NodesIt)->Position == l_StartPos)
-			{
-				l_StartNode = *l_NodesIt;
-				break;
-			}
-		}
-		if(l_NodesIt != l_StartIt->LevelNodes.end())
-			break;
-	}
-
 	auto l_GoalIt = m_Clusters[1].begin();
 	for(; l_GoalIt != m_Clusters[1].end(); ++l_GoalIt)
 	{
-		auto l_NodesIt = l_GoalIt->LevelNodes.begin();
-		for(; l_NodesIt != l_GoalIt->LevelNodes.end(); ++l_NodesIt)
-		{
-			if((*l_NodesIt)->Height == 0 && (*l_NodesIt)->Level == 1 && (*l_NodesIt)->Position == l_GoalPos)
-			{
-				l_EndNode = *l_NodesIt;
-				break;
-			}
-		}
-		if(l_NodesIt != l_GoalIt->LevelNodes.end())
+		if(l_GoalIt->MinPos <= l_GoalPos && l_GoalPos <= l_GoalIt->MaxPos)
 			break;
 	}
-
-	if(l_StartIt == m_Clusters[1].end())
-		l_StartNode = std::make_shared<Node>(Node(1, 0, l_StartPos));
-
-	if(l_GoalIt == m_Clusters[1].end())
-		l_EndNode = std::make_shared<Node>(Node(1, 0, l_GoalPos));
-
-	std::vector<Node> l_AbstractPath;
 	
-	if(m_Paths[l_StartNode][l_EndNode] != std::vector<std::shared_ptr<Node>>())
+	auto l_NodesIt = l_GoalIt->LevelNodes.begin();
+	for(; l_NodesIt != l_GoalIt->LevelNodes.end(); ++l_NodesIt)
 	{
-		std::for_each(m_Paths[l_StartNode][l_EndNode].begin(), m_Paths[l_StartNode][l_EndNode].end(), 
-			[&l_AbstractPath](const std::shared_ptr<Node> & in_Node)
+		if((*l_NodesIt)->Height == 0 && (*l_NodesIt)->Level == 1 && (*l_NodesIt)->Position == l_GoalPos)
 		{
-			l_AbstractPath.push_back(*in_Node);
-		});
-		return l_AbstractPath;
+			l_EndNode = *l_NodesIt;
+			break;
+		}
 	}
 
-	InsertNode(l_StartNode, 1);
-	InsertNode(l_EndNode, 1);
+	auto l_StartIt = m_Clusters[1].begin();
+	for(; l_StartIt != m_Clusters[1].end(); ++l_StartIt)
+	{
+		if(l_StartIt->MinPos <= l_StartPos && l_StartPos <= l_StartIt->MaxPos)
+			break;
+	}
+	
+	l_NodesIt = l_StartIt->LevelNodes.begin();
+	for(; l_NodesIt != l_StartIt->LevelNodes.end(); ++l_NodesIt)
+	{
+		if((*l_NodesIt)->Height == 0 && (*l_NodesIt)->Level == 1 && (*l_NodesIt)->Position == l_StartPos)
+		{
+			l_StartNode = *l_NodesIt;
+			break;
+		}
+	}
+
+	if(!l_StartNode)
+	{
+		l_StartNode = std::make_shared<Node>(Node(1, 0, l_StartPos));
+		l_StartIt->LevelNodes.push_back(l_StartNode);
+	}
+
+	if(!l_EndNode)
+	{
+		l_EndNode = std::make_shared<Node>(Node(1, 0, l_GoalPos));
+		l_GoalIt->LevelNodes.push_back(l_EndNode);
+	}
+
+	if(m_Paths[l_StartNode][l_EndNode] != NodeVector())
+		return NodeVector(m_Paths[l_StartNode][l_EndNode].begin(), m_Paths[l_StartNode][l_EndNode].end());
+
+	ConnectToBorder(l_StartNode, *l_StartIt);
+	ConnectToBorder(l_EndNode, *l_GoalIt);
 	
 	AStar(l_StartNode, l_EndNode, m_Graphs[1], TrivialHeuristic());
 
-	std::for_each(m_Paths[l_StartNode][l_EndNode].begin(), m_Paths[l_StartNode][l_EndNode].end(), 
-		[&l_AbstractPath](const std::shared_ptr<Node> & in_Node)
-	{
-		l_AbstractPath.push_back(*in_Node);
-	});
-	return l_AbstractPath;
+	return NodeVector(m_Paths[l_StartNode][l_EndNode].begin(), m_Paths[l_StartNode][l_EndNode].end());
 }
 
-std::vector<Vector2> Navigator::ComputeConcretePath(const Node & in_StartNode, const Node & in_GoalNode)
+std::vector<Vector2> Navigator::ComputeConcretePath(std::shared_ptr<Node> && in_StartNode, std::shared_ptr<Node> && in_GoalNode)
 {
 	// Find the cluster which they belong to
-	auto l_ClusterIt = std::find_if(m_Clusters[1].begin(), m_Clusters[1].end(),
-		[&in_StartNode, &in_GoalNode](const Cluster & in_Cluster) -> bool
-	{
-		int found = 0;
-		for(auto l_It = in_Cluster.LevelNodes.begin(); l_It != in_Cluster.LevelNodes.end(); ++l_It)
-		{
-			if(**l_It == in_StartNode)
-			{
-				if(++found == 2)
-					break;
-			}
-			else if(**l_It == in_GoalNode)
-			{
-				if(++found == 2)
-					break;
-			}
-		}
-		return found == 2;
-	});
+	auto l_ClusterIt = m_Clusters[1].begin();
+	for(; l_ClusterIt != m_Clusters[1].end(); ++l_ClusterIt)
+		if(l_ClusterIt->MinPos <= in_StartNode->Position && in_StartNode->Position <= l_ClusterIt->MaxPos
+			&& l_ClusterIt->MinPos <= in_GoalNode->Position && in_GoalNode->Position <= l_ClusterIt->MaxPos)
+			break;
 
 	if(l_ClusterIt == m_Clusters[1].end())
-	{
 		return std::vector<Vector2>();
-	}
 
 	std::shared_ptr<Navigator::Node> l_BaseStart(*FindCorrespondingBaseNode(*l_ClusterIt, in_StartNode));
 	std::shared_ptr<Navigator::Node> l_BaseGoal(*FindCorrespondingBaseNode(*l_ClusterIt, in_GoalNode));
-
-	if(m_Paths[l_BaseStart][l_BaseGoal] == std::vector<std::shared_ptr<Node>>())
+	
+	if(m_Paths[l_BaseStart][l_BaseGoal] == NodeVector())
 		AStar(l_BaseStart, l_BaseGoal, l_ClusterIt->LocalGraph, TrivialHeuristic());
 
 	std::vector<Vector2> l_ConcretePath;
-	std::for_each(m_Paths[l_BaseStart][l_BaseGoal].begin(), m_Paths[l_BaseStart][l_BaseGoal].end(), 
-		[&l_ConcretePath](const std::shared_ptr<Node> & in_Node)
-	{
-		l_ConcretePath.push_back(in_Node->Position);
-	});
+	std::transform(m_Paths[l_BaseStart][l_BaseGoal].begin(), m_Paths[l_BaseStart][l_BaseGoal].end(), std::back_inserter(l_ConcretePath),
+		[](const std::shared_ptr<Node> & in_Node)
+		{
+			return in_Node->Position;
+		});
 	return l_ConcretePath;
 }
 

@@ -24,6 +24,8 @@ private:
 	Navigator m_Navigator;
 	Planner m_Planner;
 	boost::chrono::high_resolution_clock::time_point m_Start;
+	std::map<const BotInfo*, std::vector<std::shared_ptr<Navigator::Node>>> m_BotsAbstractPaths;
+	std::map<const BotInfo*, int> m_BotsNodeIndex;
 
 private:
 	Planner::State GetBotState(const BotInfo* in_Bot);

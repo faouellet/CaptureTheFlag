@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <fstream>
 
 #include "api/CommanderFactory.h"
 #include "api/Commands.h"
@@ -24,7 +25,14 @@ std::string MyCommander::getName() const
 
 void MyCommander::initialize()
 {
-	//m_Navigator.Init(m_level->blockHeights, m_level->height, m_level->width);
+	std::for_each(m_game->team->members.begin(), m_game->team->members.end(), 
+			[this](const BotInfo* in_BotInfo)
+		{
+			m_BotsAbstractPaths[in_BotInfo] = std::vector<std::shared_ptr<Navigator::Node>>();
+			m_BotsNodeIndex[in_BotInfo] = 0;
+		});
+
+	m_Navigator.Init(m_level->blockHeights, m_level->height, m_level->width);
 #ifdef _TRAIN
 	m_Planner.Init(m_game, false);
 #else
@@ -45,8 +53,8 @@ void MyCommander::tick()
 		ActionToCommand(l_Action, l_Bot);
 	}
 
-	//m_Navigator.ProcessClusters(M_TICKTIME 
-	//	- boost::chrono::duration<double, boost::milli>(boost::chrono::high_resolution_clock::now()-m_Start).count());
+	m_Navigator.ProcessClusters(M_TICKTIME 
+		- boost::chrono::duration<double, boost::milli>(boost::chrono::high_resolution_clock::now()-m_Start).count());
 }
 
 void MyCommander::shutdown() 
@@ -98,7 +106,19 @@ void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInf
 		case Planner::GetEnemyFlag:
 		{
 			std::cout << in_Bot->name << " : GetEnemyFlag" << std::endl;
+			// NOTE : The bot position is supposed to always be set as per the SDK documentation, but it isn't so I have to compensate
+			std::vector<std::shared_ptr<Navigator::Node>> l_AbstractPath(m_Navigator.ComputeAbstractPath(
+				in_Bot->position ? *in_Bot->position : m_game->team->botSpawnArea.first, m_game->enemyTeam->flag->position));
+			if(l_AbstractPath.size())
+			{
+				std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(std::move(l_AbstractPath[0]), 
+					std::move(l_AbstractPath[1])));
+			}
+
 			issue(new ChargeCommand(in_Bot->name, m_game->enemyTeam->flag->position));
+
+			//issue(new ChargeCommand(in_Bot->name, m_game->enemyTeam->flag->position));
+
 			break;
 		}
 		case Planner::WaitEnemyBase:

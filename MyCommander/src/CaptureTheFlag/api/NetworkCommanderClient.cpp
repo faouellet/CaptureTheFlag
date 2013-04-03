@@ -204,7 +204,7 @@ void NetworkCommanderClient::initializeCommanderGameData(const std::string&  lev
 {
     json_spirit::mValue value;
 	// NOTE : Why was this needed ?
-	 boost::this_thread::sleep(boost::posix_time::seconds(20));
+	// boost::this_thread::sleep(boost::posix_time::seconds(20));
     json_spirit::read_string(levelInfoJson, value);
     m_commander->m_level = fromJSON<LevelInfo>(value);
 

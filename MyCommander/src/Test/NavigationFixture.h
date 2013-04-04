@@ -47,7 +47,7 @@ struct NavigationFixture
 		m_MediumLevel = fromJSON<LevelInfo>(l_MediumLevelValue);
 	}
 
-	bool TestPerformance(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width,
+	bool TestPerformance(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width, bool in_SmallTest,
 		const int in_MaxEntranceWidth = 3)
 	{
 		std::vector<boost::chrono::duration<double, boost::milli>> l_AbstractDurations(100);
@@ -58,7 +58,9 @@ struct NavigationFixture
 		{
 			m_Nav.Init(in_Level, in_Length, in_Width, in_MaxEntranceWidth);
 			l_Start = boost::chrono::high_resolution_clock::now();
-			std::vector<std::shared_ptr<Navigator::Node>> l_AbstractPath(m_Nav.ComputeAbstractPath(Vector2(2.f,3.f), Vector2(70.f,48.f)));
+			std::vector<std::shared_ptr<Navigator::Node>> l_AbstractPath(
+				m_Nav.ComputeAbstractPath(in_SmallTest ? m_StartPos : Vector2(2.f,3.f), 
+				in_SmallTest ? m_GoalPos : Vector2(70.f,48.f)));
 			l_AbstractDurations[i] = boost::chrono::high_resolution_clock::now() - l_Start;
 
 			std::vector<Vector2> l_ConcretePath;

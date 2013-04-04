@@ -149,23 +149,16 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const float in_CurrentTime,
 				&& l_KilledIt->killedEventData.instigator == in_Bot
 				&& l_KilledIt->killedEventData.subject == in_Bot->flag->carrier)
 				l_Reward += 80;
+			else if(in_Bot->team->flag->carrier)
+				l_Reward += 20;
 			else l_Reward -= 10;
-
-			/*if(l_EventIt != in_Events.end())
-			{
-				if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator == in_Bot)
-					l_Reward += 80;
-				else if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator->team == in_Bot->team)
-					l_Reward += 40;
-				else
-					l_Reward -= 80;
-			}*/
 		}
 		case Defend:
 		{
-			// TODO : Beef it up
 			if(in_Bot->flag)
 				l_Reward -= 80;
+			else if(l_KilledIt != in_Events.end() && l_KilledIt->killedEventData.instigator == in_Bot)
+				l_Reward += 20;
 			else l_Reward += 10;
 		}
 		case SupportFlagCarrier:
@@ -175,6 +168,11 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const float in_CurrentTime,
 				if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_CAPTURED && l_EventIt->flagCapturedEventData.subject != in_Bot->team->flag)
 					l_Reward += 80;
 			}
+			else if(std::any_of(in_Bot->team->members.begin(),in_Bot->team->members.end(), [](const BotInfo* in_Teammate)
+			{
+				return in_Teammate->flag;
+			}))
+				l_Reward += 8;
 			else
 				l_Reward -= 8;
 		}

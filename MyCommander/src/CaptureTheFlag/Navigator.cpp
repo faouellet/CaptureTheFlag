@@ -561,8 +561,6 @@ void Navigator::ConnectToBorder(const std::shared_ptr<Node> & in_Node, Cluster &
 
 Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal)
 {
-	std::cout << in_Start << " " << in_Goal << std::endl;
-
 	if(in_Start == in_Goal)
 		return std::vector<std::shared_ptr<Node>>();
 
@@ -652,6 +650,7 @@ std::vector<Vector2> Navigator::ComputeConcretePath(std::shared_ptr<Node> && in_
 		{
 			return in_Node->Position;
 		});
+
 	return l_ConcretePath;
 }
 

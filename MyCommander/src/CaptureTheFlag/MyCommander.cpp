@@ -17,6 +17,12 @@ REGISTER_COMMANDER(MyCommander);
 
 const double MyCommander::M_TICKTIME = 80.0;
 const std::string MyCommander::M_QVALUESFILE = "QValues.json";
+const std::string MyCommander::M_GETFLAGSTR = "GetEnemyFlag";
+const std::string MyCommander::M_DEFENDSTR = "Defend";
+const std::string MyCommander::M_RETURNSTR = "ReturnToBase";
+const std::string MyCommander::M_WAITSTR = "WaitEnemyBase";
+const std::string MyCommander::M_KILLSTR = "KillFlagCarrier";
+const std::string MyCommander::M_SUPPORTSTR = "SupportFlagCarrier";
 
 std::string MyCommander::getName() const
 {
@@ -26,10 +32,11 @@ std::string MyCommander::getName() const
 void MyCommander::initialize()
 {
 	std::for_each(m_game->team->members.begin(), m_game->team->members.end(), 
-			[this](const BotInfo* in_BotInfo)
+			[this](BotInfo* in_BotInfo)
 		{
-			m_BotsAbstractPaths[in_BotInfo] = std::vector<std::shared_ptr<Navigator::Node>>();
+			m_BotsAbstractPaths[in_BotInfo] = std::vector<std::shared_ptr<Navigator::Node>>(0);
 			m_BotsNodeIndex[in_BotInfo] = 0;
+			m_BotLastAction[in_BotInfo] = Planner::None;
 		});
 
 	m_Navigator.Init(m_level->blockHeights, m_level->height, m_level->width);
@@ -48,9 +55,19 @@ void MyCommander::tick()
 	for (size_t i = 0; i< m_game->bots_available.size(); ++i)
 	{
 		auto l_Bot = m_game->bots_available[i];
-		Planner::State l_CurrentState = GetBotState(l_Bot);
-		Planner::Actions l_Action = m_Planner.GetNextAction(l_Bot, l_CurrentState, m_game->match->timePassed, m_game->match->combatEvents);
-		ActionToCommand(l_Action, l_Bot);
+		// Don't issue orders to bots not finished with their abstract path
+		if(m_BotsNodeIndex[l_Bot] && m_BotsNodeIndex[l_Bot] < m_BotsAbstractPaths[l_Bot].size() - 1)
+		{
+			CompletePath(l_Bot);
+		}
+		else
+		{
+			m_BotsAbstractPaths[l_Bot].clear();
+			m_BotsNodeIndex[l_Bot] = 0;
+			Planner::State l_CurrentState = GetBotState(l_Bot);
+			Planner::Actions l_Action = m_Planner.GetNextAction(l_Bot, l_CurrentState, m_game->match->timePassed, m_game->match->combatEvents);
+			ActionToCommand(l_Action, l_Bot);
+		}
 	}
 
 	m_Navigator.ProcessClusters(M_TICKTIME 
@@ -99,90 +116,257 @@ Planner::State MyCommander::GetBotState(const BotInfo* in_Bot)
 	return l_State;
 }
 
-void MyCommander::ActionToCommand(const Planner::Actions in_Action, const BotInfo* in_Bot)
+void MyCommander::ActionToCommand(const Planner::Actions in_Action, BotInfo* in_Bot)
 {
 	switch (in_Action)
 	{
 		case Planner::GetEnemyFlag:
-		{
-			std::cout << in_Bot->name << " : GetEnemyFlag" << std::endl;
-			// NOTE : The bot position is supposed to always be set as per the SDK documentation, but it isn't so I have to compensate
-			std::vector<std::shared_ptr<Navigator::Node>> l_AbstractPath(m_Navigator.ComputeAbstractPath(
-				in_Bot->position ? *in_Bot->position : m_game->team->botSpawnArea.first, m_game->enemyTeam->flag->position));
-			if(l_AbstractPath.size())
-			{
-				std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(std::move(l_AbstractPath[0]), 
-					std::move(l_AbstractPath[1])));
-			}
-
-			issue(new ChargeCommand(in_Bot->name, m_game->enemyTeam->flag->position));
-
-			//issue(new ChargeCommand(in_Bot->name, m_game->enemyTeam->flag->position));
-
+			CommandGetEnemyFlag(in_Bot);
 			break;
-		}
 		case Planner::WaitEnemyBase:
+			CommandWaitEnemyBase(in_Bot);
+			break;
+		case Planner::KillFlagCarrier:
+			CommandKillFlagCarrier(in_Bot);			
+			break;
+		case Planner::Defend:
+			CommandDefend(in_Bot);
+			break;
+		case Planner::SupportFlagCarrier:
+			CommandSupportFlagCarrier(in_Bot);
+			break;
+		case Planner::ReturnToBase:
+			CommandReturnToBase(in_Bot);
+			break;
+		default:
+			break;
+	}
+}
+
+void MyCommander::CommandGetEnemyFlag(BotInfo* in_Bot)
+{
+	std::vector<Vector2> l_Path(ComputePathBeginning(in_Bot,
+	// NOTE : The bot position is supposed to always be set as per the SDK documentation, but in reality it isn't so I have to check
+	in_Bot->position ? *in_Bot->position : m_game->team->botSpawnArea.first, m_game->enemyTeam->flag->position));
+
+	if(l_Path.size())
+	{
+		issue(new ChargeCommand(in_Bot->name, l_Path, M_GETFLAGSTR));
+		m_BotsNodeIndex[in_Bot]+=2;
+	}
+	m_BotLastAction[in_Bot] = Planner::GetEnemyFlag;
+}
+
+void MyCommander::CommandWaitEnemyBase(BotInfo* in_Bot)
+{
+	if(in_Bot->position->squaredDistance(m_game->team->flag->position) > 1.f)
+	{
+		std::vector<Vector2> l_Path(ComputePathBeginning(in_Bot, 
+			m_game->enemyTeam->flagScoreLocation, m_game->enemyTeam->flagScoreLocation));
+		if(l_Path.size())
 		{
-			// If far -> attack toward enemy base
-			if(in_Bot->position->squaredDistance(m_game->team->flag->position) > 1.f)
+			issue(new AttackCommand(in_Bot->name, l_Path, nullptr, M_WAITSTR));
+			m_BotsNodeIndex[in_Bot]+=2;
+		}				
+	}
+	else
+	{
+		DefendCommand::FacingDirectionVector l_FacingDirections;
+		l_FacingDirections.push_back(std::make_pair(*(in_Bot->facingDirection), 1.f));
+		l_FacingDirections.push_back(std::make_pair(Vector2(in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
+		l_FacingDirections.push_back(std::make_pair(Vector2(-in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
+		l_FacingDirections.push_back(std::make_pair(-Vector2(in_Bot->facingDirection->x, in_Bot->facingDirection->y), 1.f));
+		issue(new DefendCommand(in_Bot->name, l_FacingDirections, M_WAITSTR));
+	}
+	m_BotLastAction[in_Bot] = Planner::WaitEnemyBase;
+}
+
+void MyCommander::CommandKillFlagCarrier(BotInfo* in_Bot)
+{
+	if(m_game->team->flag->carrier)
+	{
+		std::vector<std::shared_ptr<Navigator::Node>> l_EnemyAbstractPath(m_Navigator.ComputeAbstractPath(
+			*m_game->team->flag->carrier->position,
+			m_game->enemyTeam->flagScoreLocation));
+
+		std::vector<std::shared_ptr<Navigator::Node>> l_BotAbstractPath(m_Navigator.ComputeAbstractPath(
+			*in_Bot->position,
+			m_game->team->flagScoreLocation));
+
+		std::reverse(l_EnemyAbstractPath.begin(), l_EnemyAbstractPath.end());
+		l_BotAbstractPath.insert(l_BotAbstractPath.end(), l_EnemyAbstractPath.begin()+1, l_EnemyAbstractPath.end());
+
+		m_BotsAbstractPaths[in_Bot] = l_BotAbstractPath;
+
+		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])));
+
+		issue(new ChargeCommand(in_Bot->name, l_ConcretePath, M_KILLSTR));
+
+	}
+	m_BotLastAction[in_Bot] = Planner::KillFlagCarrier;
+}
+
+void MyCommander::CommandDefend(BotInfo* in_Bot)
+{
+	if(in_Bot->position->squaredDistance(m_game->team->flag->position) > 1.f)
+	{
+		std::vector<Vector2> l_Path(ComputePathBeginning(in_Bot, 
+			*in_Bot->position, m_game->team->flag->position));
+		if(l_Path.size())
+		{
+			issue(new ChargeCommand(in_Bot->name, l_Path, M_DEFENDSTR));
+			m_BotsNodeIndex[in_Bot]+=2;
+		}
+	}
+	else
+	{
+		DefendCommand::FacingDirectionVector l_FacingDirections;
+		l_FacingDirections.push_back(std::make_pair(*(in_Bot->facingDirection), 1.f));
+		l_FacingDirections.push_back(std::make_pair(Vector2(in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
+		l_FacingDirections.push_back(std::make_pair(Vector2(-in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
+		l_FacingDirections.push_back(std::make_pair(-Vector2(in_Bot->facingDirection->x, in_Bot->facingDirection->y), 1.f));
+		issue(new DefendCommand(in_Bot->name, l_FacingDirections, M_DEFENDSTR));
+	}
+	m_BotLastAction[in_Bot] = Planner::Defend;
+}
+
+void MyCommander::CommandSupportFlagCarrier(BotInfo* in_Bot)
+{
+	if(m_game->enemyTeam->flag->carrier)
+	{
+		std::vector<std::shared_ptr<Navigator::Node>> l_BotAbstractPath(m_Navigator.ComputeAbstractPath(
+			*in_Bot->position,
+			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier][m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier].size()/2]->Position));
+
+		std::vector<std::shared_ptr<Navigator::Node>> l_ReturnPath(m_Navigator.ComputeAbstractPath(
+			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier][m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier].size()/2]->Position,
+			m_game->team->flagScoreLocation));
+
+		l_BotAbstractPath.insert(l_BotAbstractPath.end(), l_ReturnPath.begin()+1, l_ReturnPath.end());
+
+		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])));
+
+		issue(new ChargeCommand(in_Bot->name, l_ConcretePath, M_SUPPORTSTR));
+	}
+	m_BotLastAction[in_Bot] = Planner::SupportFlagCarrier;
+}
+
+void MyCommander::CommandReturnToBase(BotInfo* in_Bot)
+{
+	std::vector<Vector2> l_Path(ComputePathBeginning(in_Bot, 
+		*in_Bot->position, m_game->team->flagScoreLocation));
+	if(l_Path.size())
+	{
+		issue(new ChargeCommand(in_Bot->name, l_Path, M_RETURNSTR));
+		m_BotsNodeIndex[in_Bot]+=2;
+	}
+	m_BotLastAction[in_Bot] = Planner::ReturnToBase;
+}
+
+std::vector<Vector2> MyCommander::ComputePathBeginning(BotInfo * in_Bot, const Vector2 & in_Start, const Vector2 & in_Goal)
+{
+	std::cout << in_Bot->name << " Start:" << in_Start << " Goal: " << in_Goal << std::endl;
+
+	m_BotsAbstractPaths[in_Bot] = m_Navigator.ComputeAbstractPath(in_Start, in_Goal);
+
+	if(m_BotsAbstractPaths[in_Bot].size())
+	{
+		Vector2 l_Goal = m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]->Position;
+		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])));
+
+		if(l_ConcretePath.empty())
+			l_ConcretePath.push_back(in_Goal);
+		return l_ConcretePath;
+	}
+	return std::vector<Vector2>();
+}
+
+void MyCommander::CompletePath(BotInfo* in_Bot)
+{
+	std::string l_Intention;
+	switch (m_BotLastAction.at(in_Bot))
+	{
+		case Planner::GetEnemyFlag:
+			l_Intention = M_GETFLAGSTR;
+			break;
+		case Planner::Defend:
+			l_Intention = M_DEFENDSTR;
+			break;
+		case Planner::ReturnToBase:
+			l_Intention = M_RETURNSTR;
+			break;
+		case Planner::WaitEnemyBase:
+			l_Intention = M_WAITSTR;
+			break;
+		case Planner::KillFlagCarrier:
+			l_Intention = M_KILLSTR;
+			break;
+		case Planner::SupportFlagCarrier:
+			l_Intention = M_RETURNSTR;
+			break;
+		default:
+			l_Intention = "";
+			break;
+	}
+
+	switch (m_BotLastAction.at(in_Bot))
+	{
+		case Planner::GetEnemyFlag:
+		case Planner::Defend:
+		case Planner::ReturnToBase:
+		{
+			if(m_BotsNodeIndex[in_Bot] == m_BotsAbstractPaths[in_Bot].size()-1)
 			{
-				std::cout << in_Bot->name << " : WaitEnemyBase/Attack" << std::endl;
-				issue(new AttackCommand(in_Bot->name, m_game->enemyTeam->flagScoreLocation, m_game->enemyTeam->flagScoreLocation));
+				issue(new ChargeCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]->Position, l_Intention));
 			}
-			else // defend/patrol
+			else
 			{
-				std::cout << in_Bot->name << " : WaitEnemyBase/Defend" << std::endl;
-				DefendCommand::FacingDirectionVector l_FacingDirections;
-				l_FacingDirections.push_back(std::make_pair(*(in_Bot->facingDirection), 1.f));
-				l_FacingDirections.push_back(std::make_pair(Vector2(in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
-				l_FacingDirections.push_back(std::make_pair(Vector2(-in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
-				l_FacingDirections.push_back(std::make_pair(-Vector2(in_Bot->facingDirection->x, in_Bot->facingDirection->y), 1.f));
-				issue(new DefendCommand(in_Bot->name, l_FacingDirections));
+				Vector2 l_Goal = m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]->Position;
+				std::vector<Vector2> l_ConcretePath( m_Navigator.ComputeConcretePath(
+							std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
+							std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])));
+
+				if(l_ConcretePath.size())
+					issue(new ChargeCommand(in_Bot->name, l_ConcretePath, l_Intention));
+				else
+					issue(new ChargeCommand(in_Bot->name, l_Goal, l_Intention));
+
+				m_BotsNodeIndex[in_Bot]+=2;
 			}
 			break;
 		}
 		case Planner::KillFlagCarrier:
 		{
-			std::cout << in_Bot->name << " : KillFlagCarrier" << std::endl;
-			if(m_game->team->flag->carrier)
-				issue(new AttackCommand(in_Bot->name, m_game->team->flag->position, m_game->team->flag->position));
-			break;
-		}
-		case Planner::Defend:
-		{
-			if(in_Bot->position->squaredDistance(m_game->team->flag->position) > 1.f)
+			if((abs(in_Bot->position->x - m_game->enemyTeam->flagScoreLocation.x) 
+				+ abs(in_Bot->position->y - m_game->enemyTeam->flagScoreLocation.y)) < 1.f)
 			{
-				std::cout << in_Bot->name << " : Defend/ChargeEnemy " << std::endl;
-				issue(new ChargeCommand(in_Bot->name, m_game->team->flag->position));
+				issue(new AttackCommand(in_Bot->name, m_Navigator.ComputeConcretePath(
+					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]),
+					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])), nullptr, l_Intention));
 			}
 			else
 			{
-				std::cout << in_Bot->name << " : Defend/CampEnemy" << std::endl;
-				DefendCommand::FacingDirectionVector l_FacingDirections;
-				l_FacingDirections.push_back(std::make_pair(*(in_Bot->facingDirection), 1.f));
-				l_FacingDirections.push_back(std::make_pair(Vector2(in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
-				l_FacingDirections.push_back(std::make_pair(Vector2(-in_Bot->facingDirection->x, -in_Bot->facingDirection->y), 1.f));
-				l_FacingDirections.push_back(std::make_pair(-Vector2(in_Bot->facingDirection->x, in_Bot->facingDirection->y), 1.f));
-				issue(new DefendCommand(in_Bot->name, l_FacingDirections));
+				issue(new ChargeCommand(in_Bot->name, m_Navigator.ComputeConcretePath(
+					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]),
+					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])), l_Intention));
 			}
+			m_BotsNodeIndex[in_Bot]+=2;
 			break;
 		}
+		case Planner::WaitEnemyBase:		
 		case Planner::SupportFlagCarrier:
 		{
-			std::cout << in_Bot->name << " : SupportFlagCarrier" << std::endl;
-			if(m_game->team->flag->carrier)
-				issue(new AttackCommand(in_Bot->name, m_game->team->flagScoreLocation, m_game->team->flag->carrier->position));
-			break;
-		}
-		case Planner::ReturnToBase:
-		{
-			std::cout << in_Bot->name << " : ReturnToBase" << std::endl;
-			issue(new ChargeCommand(in_Bot->name, m_game->team->flagScoreLocation));
-			break;
-		}
-		default:
-		{
-			break;
+			issue(new AttackCommand(in_Bot->name, m_Navigator.ComputeConcretePath(
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]),
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])), nullptr, l_Intention));
+			
+			
 		}
 	}
 }

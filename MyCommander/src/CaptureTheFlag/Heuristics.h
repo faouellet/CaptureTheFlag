@@ -44,9 +44,11 @@ public:
 class SeekHeuristic : public IHeuristic
 {
 private:
+	std::vector<Vector2> m_EnemyLocations;
 
 public:
-	SeekHeuristic()	{ }
+	SeekHeuristic(const std::vector<Vector2> & in_EnemyLocations = std::vector<Vector2>()) : 
+		m_EnemyLocations(in_EnemyLocations) { }
 
 	double operator()(const Navigator::Node & in_Start, const Navigator::Node & in_Goal)
 	{
@@ -60,7 +62,8 @@ private:
 	std::vector<Vector2> m_EnemyLocations;
 
 public:
-	AvoidHeuristic(const std::vector<Vector2> & m_EnemyLocations) { }
+	AvoidHeuristic(const std::vector<Vector2> & in_EnemyLocations = std::vector<Vector2>()) :
+		m_EnemyLocations(in_EnemyLocations) { }
 
 	double operator()(const Navigator::Node & in_Start, const Navigator::Node & in_Goal)
 	{

@@ -559,7 +559,7 @@ void Navigator::ConnectToBorder(const std::shared_ptr<Node> & in_Node, Cluster &
 	}
 }
 
-Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal)
+Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal, const IHeuristic & in_Heuristic)
 {
 	if(in_Start == in_Goal)
 		return std::vector<std::shared_ptr<Node>>();
@@ -621,12 +621,13 @@ Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, c
 	ConnectToBorder(l_StartNode, *l_StartIt);
 	ConnectToBorder(l_EndNode, *l_GoalIt);
 	
-	AStar(l_StartNode, l_EndNode, m_Graphs[1], TrivialHeuristic());
+	AStar(l_StartNode, l_EndNode, m_Graphs[1], in_Heuristic);
 
 	return NodeVector(m_Paths[l_StartNode][l_EndNode].begin(), m_Paths[l_StartNode][l_EndNode].end());
 }
 
-std::vector<Vector2> Navigator::ComputeConcretePath(std::shared_ptr<Node> && in_StartNode, std::shared_ptr<Node> && in_GoalNode)
+std::vector<Vector2> Navigator::ComputeConcretePath(std::shared_ptr<Node> && in_StartNode, std::shared_ptr<Node> && in_GoalNode, 
+													const IHeuristic & in_Heuristic)
 {
 	// Find the cluster which they belong to
 	auto l_ClusterIt = m_Clusters[1].begin();
@@ -642,7 +643,7 @@ std::vector<Vector2> Navigator::ComputeConcretePath(std::shared_ptr<Node> && in_
 	std::shared_ptr<Navigator::Node> l_BaseGoal(*FindCorrespondingBaseNode(*l_ClusterIt, in_GoalNode));
 	
 	if(m_Paths[l_BaseStart][l_BaseGoal] == NodeVector())
-		AStar(l_BaseStart, l_BaseGoal, l_ClusterIt->LocalGraph, TrivialHeuristic());
+		AStar(l_BaseStart, l_BaseGoal, l_ClusterIt->LocalGraph, in_Heuristic);
 
 	std::vector<Vector2> l_ConcretePath;
 	std::transform(m_Paths[l_BaseStart][l_BaseGoal].begin(), m_Paths[l_BaseStart][l_BaseGoal].end(), std::back_inserter(l_ConcretePath),

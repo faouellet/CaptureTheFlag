@@ -13,6 +13,8 @@
 #include "api/Commands.h"
 #include "api/GameInfo.h"
 
+#include "Heuristics.h"
+
 REGISTER_COMMANDER(MyCommander);
 
 const double MyCommander::M_TICKTIME = 80.0;
@@ -187,11 +189,11 @@ void MyCommander::CommandKillFlagCarrier(BotInfo* in_Bot)
 	{
 		std::vector<std::shared_ptr<Navigator::Node>> l_EnemyAbstractPath(m_Navigator.ComputeAbstractPath(
 			*m_game->team->flag->carrier->position,
-			m_game->enemyTeam->flagScoreLocation));
+			m_game->enemyTeam->flagScoreLocation, TrivialHeuristic()));
 
 		std::vector<std::shared_ptr<Navigator::Node>> l_BotAbstractPath(m_Navigator.ComputeAbstractPath(
 			*in_Bot->position,
-			m_game->team->flagScoreLocation));
+			m_game->team->flagScoreLocation, TrivialHeuristic()));
 
 		std::reverse(l_EnemyAbstractPath.begin(), l_EnemyAbstractPath.end());
 		l_BotAbstractPath.insert(l_BotAbstractPath.end(), l_EnemyAbstractPath.begin()+1, l_EnemyAbstractPath.end());
@@ -200,7 +202,7 @@ void MyCommander::CommandKillFlagCarrier(BotInfo* in_Bot)
 
 		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
 				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])));
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), TrivialHeuristic()));
 
 		issue(new ChargeCommand(in_Bot->name, l_ConcretePath, M_KILLSTR));
 
@@ -238,19 +240,22 @@ void MyCommander::CommandSupportFlagCarrier(BotInfo* in_Bot)
 	{
 		std::vector<std::shared_ptr<Navigator::Node>> l_BotAbstractPath(m_Navigator.ComputeAbstractPath(
 			*in_Bot->position,
-			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier][m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier].size()/2]->Position));
+			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier][m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier].size()/2]->Position, 
+			TrivialHeuristic()));
 
 		std::vector<std::shared_ptr<Navigator::Node>> l_ReturnPath(m_Navigator.ComputeAbstractPath(
 			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier][m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier].size()/2]->Position,
-			m_game->team->flagScoreLocation));
+			m_game->team->flagScoreLocation,
+			TrivialHeuristic()));
 
 		l_BotAbstractPath.insert(l_BotAbstractPath.end(), l_ReturnPath.begin()+1, l_ReturnPath.end());
 
 		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
 				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])));
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]),
+				TrivialHeuristic()));
 
-		issue(new ChargeCommand(in_Bot->name, l_ConcretePath, M_SUPPORTSTR));
+		issue(new AttackCommand(in_Bot->name, l_ConcretePath, nullptr, M_SUPPORTSTR));
 	}
 	m_BotLastAction[in_Bot] = Planner::SupportFlagCarrier;
 }
@@ -271,14 +276,14 @@ std::vector<Vector2> MyCommander::ComputePathBeginning(BotInfo * in_Bot, const V
 {
 	std::cout << in_Bot->name << " Start:" << in_Start << " Goal: " << in_Goal << std::endl;
 
-	m_BotsAbstractPaths[in_Bot] = m_Navigator.ComputeAbstractPath(in_Start, in_Goal);
+	m_BotsAbstractPaths[in_Bot] = m_Navigator.ComputeAbstractPath(in_Start, in_Goal, TrivialHeuristic());
 
 	if(m_BotsAbstractPaths[in_Bot].size())
 	{
 		Vector2 l_Goal = m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]->Position;
 		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
 				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])));
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), TrivialHeuristic()));
 
 		if(l_ConcretePath.empty())
 			l_ConcretePath.push_back(in_Goal);
@@ -330,7 +335,8 @@ void MyCommander::CompletePath(BotInfo* in_Bot)
 				Vector2 l_Goal = m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]->Position;
 				std::vector<Vector2> l_ConcretePath( m_Navigator.ComputeConcretePath(
 							std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
-							std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])));
+							std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), 
+							TrivialHeuristic()));
 
 				if(l_ConcretePath.size())
 					issue(new ChargeCommand(in_Bot->name, l_ConcretePath, l_Intention));
@@ -348,25 +354,25 @@ void MyCommander::CompletePath(BotInfo* in_Bot)
 			{
 				issue(new AttackCommand(in_Bot->name, m_Navigator.ComputeConcretePath(
 					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]),
-					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])), nullptr, l_Intention));
+					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), 
+					TrivialHeuristic()), nullptr, l_Intention));
 			}
 			else
 			{
 				issue(new ChargeCommand(in_Bot->name, m_Navigator.ComputeConcretePath(
 					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]),
-					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])), l_Intention));
+					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), TrivialHeuristic()), l_Intention));
 			}
 			m_BotsNodeIndex[in_Bot]+=2;
 			break;
 		}
-		case Planner::WaitEnemyBase:		
 		case Planner::SupportFlagCarrier:
+		case Planner::WaitEnemyBase:		
 		{
 			issue(new AttackCommand(in_Bot->name, m_Navigator.ComputeConcretePath(
 				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]),
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1])), nullptr, l_Intention));
-			
-			
+				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), TrivialHeuristic()), nullptr, l_Intention));
+			break;
 		}
 	}
 }
@@ -374,5 +380,5 @@ void MyCommander::CompletePath(BotInfo* in_Bot)
 void MyCommander::Reset()
 {
 	m_Navigator.Reset();
-	m_Planner.ResetQValues();
+	m_Planner.Reset();
 }

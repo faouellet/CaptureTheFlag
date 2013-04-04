@@ -32,16 +32,11 @@ BOOST_AUTO_TEST_CASE( LoadWriteTest )
 
 	BOOST_REQUIRE(m_Plan.WritePlanToDisk(l_TestStr));
 
-	std::string l_PlanStr = ReadAllFile("QValues.json");
+	std::string l_PlanStr = ReadAllFile("TestQValues.json");
 	std::string l_TestPlanStr = ReadAllFile(l_TestStr);
 	BOOST_REQUIRE(l_PlanStr == l_TestPlanStr);
 
 	BOOST_REQUIRE(m_Plan.LoadPlanFromDisk(l_TestStr));
-
-	m_Plan.Init(m_GameTickInfo, false, 0.1, -2.0);
-
-	//BOOST_REQUIRE(m_Plan.GetNextAction("Blue0", M_SUPPORTSTATE) == Planner::SupportFlagCarrier);
-	//BOOST_REQUIRE(m_Plan.GetNextAction("Blue1", M_SCORESTATE) == Planner::ReturnToBase);
 }
 
 // The correctness tests verify that the Q-Learning algorithm is correctly working.
@@ -49,7 +44,6 @@ BOOST_AUTO_TEST_CASE( LoadWriteTest )
 
 BOOST_AUTO_TEST_CASE( QLearningInitCorrectnessTest )
 {
-	m_Plan.Init(m_GameInitInfo);
 	Planner::Actions l_GoodAction = Planner::GetEnemyFlag;
 	std::vector<Planner::Actions> l_Actions(500);
 
@@ -58,7 +52,10 @@ BOOST_AUTO_TEST_CASE( QLearningInitCorrectnessTest )
 
 	for(int i = 0; i < 500; ++i)
 	{
-//		l_Actions[i] = m_Plan.GetNextAction(*(m_GameInitInfo->team->members.begin()), l_State);
+		m_Plan.Init(m_GameInitInfo);
+		l_Actions[i] = m_Plan.GetNextAction(m_GameInitInfo->bots["Blue0"].get(), l_State, 
+			m_GameInitInfo->match->timePassed, m_GameInitInfo->match->combatEvents);
+		m_Plan.Reset();
 	}
 
 	int l_Count = std::count_if(l_Actions.begin(), l_Actions.end(), [&l_GoodAction](const Planner::Actions in_Action)
@@ -66,14 +63,14 @@ BOOST_AUTO_TEST_CASE( QLearningInitCorrectnessTest )
 		return in_Action == l_GoodAction;
 	});
 	float l_Ratio = static_cast<float>(l_Count) / l_Actions.size();
-
-	// BOOST_REQUIRE(0.09f < l_Ratio && l_Ratio < 0.11f);
+		
+	BOOST_REQUIRE(0.64f < l_Ratio && l_Ratio < 0.66f);
 }
 
 BOOST_AUTO_TEST_CASE( QLearningTickCorrectnessTest )
 {
 	m_Plan.Init(m_GameTickInfo);
-	Planner::Actions l_GoodAction = Planner::ReturnToBase;
+	Planner::Actions l_GoodAction = Planner::GetEnemyFlag;
 	std::vector<Planner::Actions> l_Actions(500);
 
 	Planner::State l_State = GetBotState(m_GameTickInfo, m_GameTickInfo->bots["Blue1"]);
@@ -81,7 +78,10 @@ BOOST_AUTO_TEST_CASE( QLearningTickCorrectnessTest )
 
 	for(int i = 0; i < 500; ++i)
 	{
-//		l_Actions[i] = m_Plan.GetNextAction(*(m_GameTickInfo->team->members.begin()), l_State);
+		m_Plan.Init(m_GameInitInfo);
+		l_Actions[i] = m_Plan.GetNextAction(m_GameInitInfo->bots["Blue0"].get(), l_State, 
+			m_GameInitInfo->match->timePassed, m_GameInitInfo->match->combatEvents);
+		m_Plan.Reset();
 	}
 
 	int l_Count = std::count_if(l_Actions.begin(), l_Actions.end(), [&l_GoodAction](const Planner::Actions in_Action)
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE( QLearningTickCorrectnessTest )
 	});
 	float l_Ratio = static_cast<float>(l_Count) / l_Actions.size();
 
-	// BOOST_REQUIRE(0.09f < l_Ratio && l_Ratio < 0.11f);
+	BOOST_REQUIRE(0.64f < l_Ratio && l_Ratio < 0.66f);
 }
 
 BOOST_AUTO_TEST_CASE( QLearningPerformanceTest )

@@ -43,6 +43,12 @@ struct PlanningFixture
 
 		m_GameInitInfo = fromJSON<GameInfo>(l_GameInitValue);
 		m_GameTickInfo = fromJSON<GameInfo>(l_GameTickValue);
+
+		m_GameInitInfo->bots["Blue0"]->team->flag = m_GameInitInfo->flags["BlueFlag"].get();
+		m_GameInitInfo->bots["Blue1"]->team->flag = m_GameInitInfo->flags["BlueFlag"].get();
+		m_GameInitInfo->bots["Blue2"]->team->flag = m_GameInitInfo->flags["BlueFlag"].get();
+		m_GameInitInfo->bots["Blue3"]->team->flag = m_GameInitInfo->flags["BlueFlag"].get();
+		m_GameInitInfo->bots["Blue4"]->team->flag = m_GameInitInfo->flags["BlueFlag"].get();
 	}
 
 	bool TestPerformance()

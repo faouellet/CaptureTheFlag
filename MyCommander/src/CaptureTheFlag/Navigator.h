@@ -19,7 +19,7 @@ class IHeuristic;
 *
 * Navigator
 * Plan the shortest safe distance toward a goal for the bots by using the HPA* algorithm.
-* For now, it only builds one abstract layer.
+* Note that it computes only one abstract layer since the levels it is applied on is relatively small.
 */
 class Navigator
 {
@@ -142,8 +142,9 @@ public:
 	void Init(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width, const int in_MaxEntranceWidth = 3);
 	void Reset();
 
-	NodeVector ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal);
-	std::vector<Vector2> ComputeConcretePath(std::shared_ptr<Node> && in_StartNode, std::shared_ptr<Node> && in_GoalNode);
+	NodeVector ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal, const IHeuristic & in_Heuristic);
+	std::vector<Vector2> ComputeConcretePath(std::shared_ptr<Node> && in_StartNode, std::shared_ptr<Node> && in_GoalNode,
+		const IHeuristic & in_Heuristic);
 	void ProcessClusters(const double in_Time);
 
 private:

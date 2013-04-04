@@ -56,7 +56,7 @@ public:
 		const std::vector<MatchCombatEvent> & in_Events = std::vector<MatchCombatEvent>());
 
 	void SetQValues(const std::map<ActionState, double> & in_QValues) { m_QValues = in_QValues; }
-	void ResetQValues() { m_QValues.clear(); }
+	void Reset();
 
 private:
 	std::string PlanToString() const;

@@ -238,3 +238,9 @@ Planner::Actions Planner::GetBestAction(const State in_State)
 
 	return l_BestAction;
 }
+
+void Planner::Reset()
+{
+	m_QValues.clear();
+	m_LastOrders.clear();
+}

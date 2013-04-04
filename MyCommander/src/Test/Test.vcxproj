@@ -107,6 +107,7 @@
     <None Include="Server.bat" />
     <None Include="SmallGameTick.json" />
     <None Include="SmallLevel.json" />
+    <None Include="TestQValues.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

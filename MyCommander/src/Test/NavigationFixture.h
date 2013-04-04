@@ -60,14 +60,14 @@ struct NavigationFixture
 			l_Start = boost::chrono::high_resolution_clock::now();
 			std::vector<std::shared_ptr<Navigator::Node>> l_AbstractPath(
 				m_Nav.ComputeAbstractPath(in_SmallTest ? m_StartPos : Vector2(2.f,3.f), 
-				in_SmallTest ? m_GoalPos : Vector2(70.f,48.f)));
+				in_SmallTest ? m_GoalPos : Vector2(70.f,48.f), TrivialHeuristic()));
 			l_AbstractDurations[i] = boost::chrono::high_resolution_clock::now() - l_Start;
 
 			std::vector<Vector2> l_ConcretePath;
 			for(unsigned j = 0; j < l_AbstractPath.size()-1; ++j)
 			{
 				l_Start = boost::chrono::high_resolution_clock::now();
-				vector<Vector2> l_Path(m_Nav.ComputeConcretePath(std::move(l_AbstractPath[j]), std::move(l_AbstractPath[j+1])));
+				vector<Vector2> l_Path(m_Nav.ComputeConcretePath(std::move(l_AbstractPath[j]), std::move(l_AbstractPath[j+1]), TrivialHeuristic()));
 				l_ConcreteDurations.push_back(boost::chrono::high_resolution_clock::now() - l_Start);
 			}
 			m_Nav.Reset();

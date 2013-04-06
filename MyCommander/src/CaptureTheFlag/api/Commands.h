@@ -53,6 +53,14 @@ struct DefendCommand : public Command
         m_facingDirections->push_back(std::make_pair(facingDirection, 0.0f));
     }
 
+	DefendCommand(const std::string& botId, Vector2&& facingDirection, const std::string description = "")
+    :   m_botId(botId)
+    ,   m_facingDirections(FacingDirectionVector())
+    ,   m_description(description)
+    {
+        m_facingDirections->push_back(std::make_pair(facingDirection, 0.0f));
+    }
+
     /**
      * Instructs the bot to defend changing between different facing directions.
      * @param botId The bot being ordered.
@@ -60,6 +68,13 @@ struct DefendCommand : public Command
      * @param description A description of the intention of the bot. This can be optional displayed in the gui next to the bot label.
      */
     DefendCommand(const std::string& botId, const FacingDirectionVector& facingDirections, const std::string description = "")
+    :   m_botId(botId)
+    ,   m_facingDirections(facingDirections)
+    ,   m_description(description)
+    {
+    }
+
+	DefendCommand(const std::string& botId, FacingDirectionVector&& facingDirections, const std::string description = "")
     :   m_botId(botId)
     ,   m_facingDirections(facingDirections)
     ,   m_description(description)
@@ -88,7 +103,21 @@ struct MoveCommand : public Command
     {
     }
 
+	MoveCommand(const std::string& botId, Vector2&& target, const std::string description = "")
+        :   m_botId(botId)
+        ,   m_target(1,target)
+        ,   m_description(description)
+    {
+    }
+
     MoveCommand(const std::string& botId, const std::vector<Vector2>& target, const std::string description = "")
+        :   m_botId(botId)
+        ,   m_target(target)
+        ,   m_description(description)
+    {
+    }
+
+	MoveCommand(const std::string& botId, std::vector<Vector2>&& target, const std::string description = "")
         :   m_botId(botId)
         ,   m_target(target)
         ,   m_description(description)
@@ -120,7 +149,23 @@ struct AttackCommand : public Command
     {
     }
 
+	AttackCommand(const std::string& botId, Vector2 && target, const boost::optional<Vector2>& lookAt, const std::string description = "")
+    :   m_botId(botId)
+    ,   m_target(1,target)
+    ,   m_lookAt(lookAt)
+    ,   m_description(description)
+    {
+    }
+
     AttackCommand(const std::string& botId, const std::vector<Vector2>& waypoints, const boost::optional<Vector2>& lookAt, const std::string description = "")
+        :   m_botId(botId)
+        ,   m_target(waypoints)
+        ,   m_lookAt(lookAt)
+        ,   m_description(description)
+    {
+    }
+
+	AttackCommand(const std::string& botId, std::vector<Vector2>&& waypoints, const boost::optional<Vector2>& lookAt, const std::string description = "")
         :   m_botId(botId)
         ,   m_target(waypoints)
         ,   m_lookAt(lookAt)
@@ -154,7 +199,21 @@ struct ChargeCommand : public Command
     {
     }
 
+	ChargeCommand(const std::string& botId, Vector2&& target, const std::string description = "")
+        :   m_botId(botId)
+        ,   m_target(1,target)
+        ,   m_description(description)
+    {
+    }
+
     ChargeCommand(const std::string& botId, const std::vector<Vector2>& waypoints, const std::string description = "")
+        :   m_botId(botId)
+        ,   m_target(waypoints)
+        ,   m_description(description)
+    {
+    }
+
+	ChargeCommand(const std::string& botId, std::vector<Vector2>&& waypoints, const std::string description = "")
         :   m_botId(botId)
         ,   m_target(waypoints)
         ,   m_description(description)

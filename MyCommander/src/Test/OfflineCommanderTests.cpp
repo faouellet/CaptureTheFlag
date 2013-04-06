@@ -21,16 +21,16 @@ BOOST_FIXTURE_TEST_SUITE( OfflineCommanderTestSuite, OfflineFixture )
 
 BOOST_AUTO_TEST_CASE( SmallInitTest )
 {
-	//m_Cmd.setPrivates(InitGameInfo(m_GameInitValue), m_SmallLevel);
+	m_Cmd.setPrivates(InitGameInfo(m_GameInitValue, m_SmallLevel), m_SmallLevel);
 
-	//BOOST_REQUIRE(TestInitPerformance());
+	BOOST_REQUIRE(TestInitPerformance());
 }
 
 BOOST_AUTO_TEST_CASE( MediumInitTest )
 {
-	//m_Cmd.setPrivates(InitGameInfo(m_GameInitValue), m_MediumLevel);
+	m_Cmd.setPrivates(InitGameInfo(m_GameInitValue, m_MediumLevel), m_MediumLevel);
 
-	//BOOST_REQUIRE(TestInitPerformance());
+	BOOST_REQUIRE(TestInitPerformance());
 }
 
 BOOST_AUTO_TEST_CASE( SmallTickTest )

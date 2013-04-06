@@ -142,14 +142,13 @@ public:
 	void Init(const std::unique_ptr<float[]> & in_Level, const int in_Length, const int in_Width, const int in_MaxEntranceWidth = 3);
 	void Reset();
 
-	NodeVector ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal, const IHeuristic & in_Heuristic);
-	std::vector<Vector2> ComputeConcretePath(std::shared_ptr<Node> && in_StartNode, std::shared_ptr<Node> && in_GoalNode,
-		const IHeuristic & in_Heuristic);
+	NodeVector ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal);
+	std::vector<Vector2> ComputeConcretePath(const std::shared_ptr<Node> & in_StartNode, const std::shared_ptr<Node> & in_GoalNode);
 	void ProcessClusters(const double in_Time);
 
 private:
 	double AStar(const std::shared_ptr<Node> & in_Start, const std::shared_ptr<Node> & in_Goal, 
-		Graph & in_Graph, const IHeuristic & in_Heuristic);
+		Graph & in_Graph, IHeuristic && in_Heuristic);
 
 	void AbstractMaze();
 	bool Adjacent(const Cluster & in_Cluster1, const Cluster & in_Cluster2, Adjacency & out_Adjacency) const;
@@ -161,7 +160,7 @@ private:
 	void BuildGraph();
 	void Preprocess();
 	void ConnectLevelNodes();
-	void BuildLocalGraph(const int in_Length, const int in_Width, const NodeVector & in_Nodes, Graph & in_LocalGraph);
+	void BuildLocalGraph(const int in_Length, const int in_Width, const NodeVector & in_Nodes, Graph & out_LocalGraph);
 	
 	void AddIntraEdges(const double in_TimeLimit);
 	

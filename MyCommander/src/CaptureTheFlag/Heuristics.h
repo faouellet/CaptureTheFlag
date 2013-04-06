@@ -41,34 +41,4 @@ public:
 	}
 };
 
-class SeekHeuristic : public IHeuristic
-{
-private:
-	std::vector<Vector2> m_EnemyLocations;
-
-public:
-	SeekHeuristic(const std::vector<Vector2> & in_EnemyLocations = std::vector<Vector2>()) : 
-		m_EnemyLocations(in_EnemyLocations) { }
-
-	double operator()(const Navigator::Node & in_Start, const Navigator::Node & in_Goal)
-	{
-		return 0.0;
-	}
-};
-
-class AvoidHeuristic : public IHeuristic
-{
-private:
-	std::vector<Vector2> m_EnemyLocations;
-
-public:
-	AvoidHeuristic(const std::vector<Vector2> & in_EnemyLocations = std::vector<Vector2>()) :
-		m_EnemyLocations(in_EnemyLocations) { }
-
-	double operator()(const Navigator::Node & in_Start, const Navigator::Node & in_Goal)
-	{
-		return 0.0;
-	}
-};
-
 #endif // IHEURISTIC_H

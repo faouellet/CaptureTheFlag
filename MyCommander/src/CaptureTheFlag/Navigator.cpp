@@ -19,12 +19,12 @@ void Navigator::Init(const std::unique_ptr<float[]> & in_Level, const int in_Len
 					 const int in_MaxEntranceWidth)
 {
 	int l_X = 0, l_Y = 0;
-	m_Clusters.push_back(std::vector<Cluster>(1, Cluster()));
+	m_Clusters.push_back(std::vector<Cluster>(1, Cluster(0, in_Length, in_Width, NodeVector(), NodeVector(in_Length * in_Width))));
 	auto l_Cluster = m_Clusters[0].begin();
 	std::for_each(in_Level.get(), in_Level.get() + in_Length * in_Width, [&l_Cluster, &in_Width, &l_X, &l_Y, this](const float in_Block)
 	{
 		// The first level cluster is in fact the whole map
-		l_Cluster->LevelNodes.push_back(std::make_shared<Node>(Navigator::Node(0, static_cast<int>(in_Block), Vector2(static_cast<float>(l_X), static_cast<float>(l_Y)))));
+		l_Cluster->LevelNodes[l_X + l_Y * in_Width] = (std::make_shared<Node>(Navigator::Node(0, static_cast<int>(in_Block), Vector2(static_cast<float>(l_X), static_cast<float>(l_Y)))));
 		
 		if(l_X < in_Width - 1)
 		{
@@ -40,8 +40,6 @@ void Navigator::Init(const std::unique_ptr<float[]> & in_Level, const int in_Len
 	BuildLocalGraph(in_Length, in_Width, l_Cluster->LevelNodes, l_Cluster->LocalGraph);
 
 	m_Graphs.push_back(l_Cluster->LocalGraph);
-	m_Clusters[0].begin()->Length = in_Length;
-	m_Clusters[0].begin()->Width = in_Width;
 	m_MaxEntranceWidth = in_MaxEntranceWidth;
 
 	Preprocess();
@@ -56,11 +54,10 @@ void Navigator::Reset()
 }
 
 double Navigator::AStar(const std::shared_ptr<Node> & in_Start, const std::shared_ptr<Node> & in_Goal, 
-						Graph & in_Graph, const IHeuristic & in_Heuristic)
+						Graph & in_Graph, IHeuristic && in_Heuristic)
 {
 	if(in_Start->Height || in_Goal->Height || in_Start == in_Goal)
 		return std::numeric_limits<double>::infinity();
-
 	
 	std::multimap<double, std::shared_ptr<Node>> l_Closed;
 	std::multimap<double, std::shared_ptr<Node>> l_Opened;
@@ -230,7 +227,7 @@ int Navigator::ClusterSize(const int in_Size) const
 	return l_ClusterSize;
 }
 
-void Navigator::BuildLocalGraph(const int in_Length, const int in_Width, const Navigator::NodeVector & in_Nodes, Graph & in_LocalGraph)
+void Navigator::BuildLocalGraph(const int in_Length, const int in_Width, const Navigator::NodeVector & in_Nodes, Graph & out_LocalGraph)
 {
 	int l_CurrentNodeIndex = 0;	
 	int l_RightNodeIndex = 0;
@@ -252,26 +249,26 @@ void Navigator::BuildLocalGraph(const int in_Length, const int in_Width, const N
 				// Link the right node
 				if(j < in_Width-1 && !in_Nodes[l_CurrentNodeIndex+1]->Height)
 				{
-					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_RightNodeIndex]] = 1.0;
-					in_LocalGraph[in_Nodes[l_RightNodeIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.0;
+					out_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_RightNodeIndex]] = 1.0;
+					out_LocalGraph[in_Nodes[l_RightNodeIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.0;
 				}
 				// Link the down-right node
 				if(j < in_Width-1 && i < in_Length-1 && !in_Nodes[l_DownRightIndex]->Height)
 				{
-					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownRightIndex]] = 1.42;
-					in_LocalGraph[in_Nodes[l_DownRightIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.42;
+					out_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownRightIndex]] = 1.42;
+					out_LocalGraph[in_Nodes[l_DownRightIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.42;
 				}
 				// Link the down node
 				if(i < in_Length-1 && !in_Nodes[l_DownIndex]->Height)
 				{
-					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownIndex]] = 1.0;
-					in_LocalGraph[in_Nodes[l_DownIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.0;
+					out_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownIndex]] = 1.0;
+					out_LocalGraph[in_Nodes[l_DownIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.0;
 				}
 				// Link the down-left node
 				if(j > 0 && i < in_Length-1 && !in_Nodes[l_DownLeftIndex]->Height)
 				{
-					in_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownLeftIndex]] = 1.42;
-					in_LocalGraph[in_Nodes[l_DownLeftIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.42;
+					out_LocalGraph[in_Nodes[l_CurrentNodeIndex]][in_Nodes[l_DownLeftIndex]] = 1.42;
+					out_LocalGraph[in_Nodes[l_DownLeftIndex]][in_Nodes[l_CurrentNodeIndex]] = 1.42;
 				}
 			}
 		}
@@ -346,10 +343,10 @@ void Navigator::BuildEntrances(Cluster & in_Cluster1, Cluster & in_Cluster2, con
 
 	m_Entrances[in_Level-1].push_back(Entrance(in_Cluster1, in_Cluster2, l_Gates));
 	// Removing duplicates in LevelNodes
-	std::set<std::shared_ptr<Node>, NodeComparer> l_Set1(in_Cluster1.LevelNodes.begin(), in_Cluster1.LevelNodes.end());
-	in_Cluster1.LevelNodes = NodeVector(l_Set1.begin(), l_Set1.end());
-	std::set<std::shared_ptr<Node>, NodeComparer> l_Set2(in_Cluster2.LevelNodes.begin(), in_Cluster2.LevelNodes.end());
-	in_Cluster2.LevelNodes = NodeVector(l_Set2.begin(), l_Set2.end());
+	std::sort(in_Cluster1.LevelNodes.begin(), in_Cluster1.LevelNodes.end());
+	std::sort(in_Cluster2.LevelNodes.begin(), in_Cluster2.LevelNodes.end());
+	in_Cluster1.LevelNodes.erase(std::unique(in_Cluster1.LevelNodes.begin(), in_Cluster1.LevelNodes.end()), in_Cluster1.LevelNodes.end());
+	in_Cluster2.LevelNodes.erase(std::unique(in_Cluster2.LevelNodes.begin(), in_Cluster2.LevelNodes.end()), in_Cluster2.LevelNodes.end());
 }
 
 void Navigator::BuildSideEntrances(Cluster & in_Cluster1, Cluster & in_Cluster2, std::vector<Gate> & out_Gates)
@@ -469,7 +466,7 @@ void Navigator::BuildGraph()
 
 	ConnectLevelNodes();
 
-	// Setting the iterators to make the Navigator interruptible
+	// Setting the iterators to make the Navigator resumable
 	m_CurrentCluster = m_Clusters[1].begin();
 	m_CurrentFirstNode = m_CurrentCluster->BaseNodes.begin();
 	m_CurrentSecondNode = m_CurrentCluster->BaseNodes.begin() + 1;
@@ -559,7 +556,7 @@ void Navigator::ConnectToBorder(const std::shared_ptr<Node> & in_Node, Cluster &
 	}
 }
 
-Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal, const IHeuristic & in_Heuristic)
+Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, const Vector2 & in_Goal)
 {
 	if(in_Start == in_Goal)
 		return std::vector<std::shared_ptr<Node>>();
@@ -621,13 +618,12 @@ Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, c
 	ConnectToBorder(l_StartNode, *l_StartIt);
 	ConnectToBorder(l_EndNode, *l_GoalIt);
 	
-	AStar(l_StartNode, l_EndNode, m_Graphs[1], in_Heuristic);
+	AStar(l_StartNode, l_EndNode, m_Graphs[1], TrivialHeuristic());
 
 	return NodeVector(m_Paths[l_StartNode][l_EndNode].begin(), m_Paths[l_StartNode][l_EndNode].end());
 }
 
-std::vector<Vector2> Navigator::ComputeConcretePath(std::shared_ptr<Node> && in_StartNode, std::shared_ptr<Node> && in_GoalNode, 
-													const IHeuristic & in_Heuristic)
+std::vector<Vector2> Navigator::ComputeConcretePath(const std::shared_ptr<Node> & in_StartNode, const std::shared_ptr<Node> & in_GoalNode)
 {
 	// Find the cluster which they belong to
 	auto l_ClusterIt = m_Clusters[1].begin();
@@ -643,7 +639,7 @@ std::vector<Vector2> Navigator::ComputeConcretePath(std::shared_ptr<Node> && in_
 	std::shared_ptr<Navigator::Node> l_BaseGoal(*FindCorrespondingBaseNode(*l_ClusterIt, in_GoalNode));
 	
 	if(m_Paths[l_BaseStart][l_BaseGoal] == NodeVector())
-		AStar(l_BaseStart, l_BaseGoal, l_ClusterIt->LocalGraph, in_Heuristic);
+		AStar(l_BaseStart, l_BaseGoal, l_ClusterIt->LocalGraph, TrivialHeuristic());
 
 	std::vector<Vector2> l_ConcretePath;
 	std::transform(m_Paths[l_BaseStart][l_BaseGoal].begin(), m_Paths[l_BaseStart][l_BaseGoal].end(), std::back_inserter(l_ConcretePath),

@@ -14,6 +14,7 @@
 #include "GameInfo.h"
 #include "Commands.h"
 
+
 /**
  * The base class for Commanders, that give orders to the team members.
  * This class should be inherited from to create your own competition Commander.

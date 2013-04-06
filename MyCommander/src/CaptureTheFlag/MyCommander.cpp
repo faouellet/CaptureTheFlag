@@ -36,16 +36,16 @@ void MyCommander::initialize()
 	std::for_each(m_game->team->members.begin(), m_game->team->members.end(), 
 			[this](BotInfo* in_BotInfo)
 		{
-			m_BotsAbstractPaths[in_BotInfo] = std::vector<std::shared_ptr<Navigator::Node>>(0);
-			m_BotsNodeIndex[in_BotInfo] = 0;
-			m_BotLastAction[in_BotInfo] = Planner::None;
+			m_BotsAbstractPaths[in_BotInfo->name] = std::vector<std::shared_ptr<Navigator::Node>>(0);
+			m_BotsNodeIndex[in_BotInfo->name] = 0;
+			m_BotLastAction[in_BotInfo->name] = Planner::None;
 		});
 
 	m_Navigator.Init(m_level->blockHeights, m_level->height, m_level->width);
-#ifdef _TRAIN
-	m_Planner.Init(m_game, false);
-#else
+#ifdef _LOAD_PLAN
 	m_Planner.Init(m_game, true);
+#else
+	m_Planner.Init(m_game, false);
 #endif
 }
 
@@ -53,19 +53,28 @@ void MyCommander::tick()
 {
 	m_TimeSpent = 0;
 	m_Start = boost::chrono::high_resolution_clock::now();
-
+	std::cout << m_game->match->combatEvents.size() << std::endl;
 	for (size_t i = 0; i< m_game->bots_available.size(); ++i)
 	{
 		auto l_Bot = m_game->bots_available[i];
+		
+		if(m_BotLastAction[l_Bot->name] == Planner::GetEnemyFlag 
+			&& m_BotsAbstractPaths[l_Bot->name].size()
+			&& m_BotsAbstractPaths[l_Bot->name][m_BotsAbstractPaths[l_Bot->name].size()-1]->Position != m_game->enemyTeam->flag->position)
+		{
+			m_BotsAbstractPaths[l_Bot->name].clear();
+			m_BotsNodeIndex[l_Bot->name] = 0;
+			CommandGetEnemyFlag(l_Bot);
+		}
 		// Don't issue orders to bots not finished with their abstract path
-		if(m_BotsNodeIndex[l_Bot] && m_BotsNodeIndex[l_Bot] < m_BotsAbstractPaths[l_Bot].size() - 1)
+		else if(m_BotsNodeIndex[l_Bot->name] && m_BotsNodeIndex[l_Bot->name] < m_BotsAbstractPaths[l_Bot->name].size() - 1)
 		{
 			CompletePath(l_Bot);
 		}
 		else
 		{
-			m_BotsAbstractPaths[l_Bot].clear();
-			m_BotsNodeIndex[l_Bot] = 0;
+			m_BotsAbstractPaths[l_Bot->name].clear();
+			m_BotsNodeIndex[l_Bot->name] = 0;
 			Planner::State l_CurrentState = GetBotState(l_Bot);
 			Planner::Actions l_Action = m_Planner.GetNextAction(l_Bot, l_CurrentState, m_game->match->timePassed, m_game->match->combatEvents);
 			ActionToCommand(l_Action, l_Bot);
@@ -154,9 +163,9 @@ void MyCommander::CommandGetEnemyFlag(BotInfo* in_Bot)
 	if(l_Path.size())
 	{
 		issue(new ChargeCommand(in_Bot->name, l_Path, M_GETFLAGSTR));
-		m_BotsNodeIndex[in_Bot]+=2;
+		m_BotsNodeIndex[in_Bot->name]+=2;
 	}
-	m_BotLastAction[in_Bot] = Planner::GetEnemyFlag;
+	m_BotLastAction[in_Bot->name] = Planner::GetEnemyFlag;
 }
 
 void MyCommander::CommandWaitEnemyBase(BotInfo* in_Bot)
@@ -167,8 +176,9 @@ void MyCommander::CommandWaitEnemyBase(BotInfo* in_Bot)
 			m_game->enemyTeam->flagScoreLocation, m_game->enemyTeam->flagScoreLocation));
 		if(l_Path.size())
 		{
-			issue(new AttackCommand(in_Bot->name, l_Path, nullptr, M_WAITSTR));
-			m_BotsNodeIndex[in_Bot]+=2;
+			issue(new AttackCommand(in_Bot->name, l_Path, 
+				GetBestLookAt(in_Bot), M_WAITSTR));
+			m_BotsNodeIndex[in_Bot->name]+=2;
 		}				
 	}
 	else
@@ -180,7 +190,7 @@ void MyCommander::CommandWaitEnemyBase(BotInfo* in_Bot)
 		l_FacingDirections.push_back(std::make_pair(-Vector2(in_Bot->facingDirection->x, in_Bot->facingDirection->y), 1.f));
 		issue(new DefendCommand(in_Bot->name, l_FacingDirections, M_WAITSTR));
 	}
-	m_BotLastAction[in_Bot] = Planner::WaitEnemyBase;
+	m_BotLastAction[in_Bot->name] = Planner::WaitEnemyBase;
 }
 
 void MyCommander::CommandKillFlagCarrier(BotInfo* in_Bot)
@@ -189,25 +199,29 @@ void MyCommander::CommandKillFlagCarrier(BotInfo* in_Bot)
 	{
 		std::vector<std::shared_ptr<Navigator::Node>> l_EnemyAbstractPath(m_Navigator.ComputeAbstractPath(
 			*m_game->team->flag->carrier->position,
-			m_game->enemyTeam->flagScoreLocation, TrivialHeuristic()));
+			m_game->enemyTeam->flagScoreLocation));
 
 		std::vector<std::shared_ptr<Navigator::Node>> l_BotAbstractPath(m_Navigator.ComputeAbstractPath(
 			*in_Bot->position,
-			m_game->team->flagScoreLocation, TrivialHeuristic()));
+			m_game->enemyTeam->flagScoreLocation));
 
 		std::reverse(l_EnemyAbstractPath.begin(), l_EnemyAbstractPath.end());
 		l_BotAbstractPath.insert(l_BotAbstractPath.end(), l_EnemyAbstractPath.begin()+1, l_EnemyAbstractPath.end());
 
-		m_BotsAbstractPaths[in_Bot] = l_BotAbstractPath;
+		m_BotsAbstractPaths[in_Bot->name] = l_BotAbstractPath;
 
 		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), TrivialHeuristic()));
+				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]], 
+				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
 
-		issue(new ChargeCommand(in_Bot->name, l_ConcretePath, M_KILLSTR));
+		if(l_ConcretePath.empty())
+			issue(new ChargeCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position, M_KILLSTR));
+		else
+			issue(new ChargeCommand(in_Bot->name, l_ConcretePath, M_KILLSTR));
+		m_BotsNodeIndex[in_Bot->name]+=2;
 
 	}
-	m_BotLastAction[in_Bot] = Planner::KillFlagCarrier;
+	m_BotLastAction[in_Bot->name] = Planner::KillFlagCarrier;
 }
 
 void MyCommander::CommandDefend(BotInfo* in_Bot)
@@ -219,7 +233,7 @@ void MyCommander::CommandDefend(BotInfo* in_Bot)
 		if(l_Path.size())
 		{
 			issue(new ChargeCommand(in_Bot->name, l_Path, M_DEFENDSTR));
-			m_BotsNodeIndex[in_Bot]+=2;
+			m_BotsNodeIndex[in_Bot->name]+=2;
 		}
 	}
 	else
@@ -231,7 +245,7 @@ void MyCommander::CommandDefend(BotInfo* in_Bot)
 		l_FacingDirections.push_back(std::make_pair(-Vector2(in_Bot->facingDirection->x, in_Bot->facingDirection->y), 1.f));
 		issue(new DefendCommand(in_Bot->name, l_FacingDirections, M_DEFENDSTR));
 	}
-	m_BotLastAction[in_Bot] = Planner::Defend;
+	m_BotLastAction[in_Bot->name] = Planner::Defend;
 }
 
 void MyCommander::CommandSupportFlagCarrier(BotInfo* in_Bot)
@@ -240,24 +254,32 @@ void MyCommander::CommandSupportFlagCarrier(BotInfo* in_Bot)
 	{
 		std::vector<std::shared_ptr<Navigator::Node>> l_BotAbstractPath(m_Navigator.ComputeAbstractPath(
 			*in_Bot->position,
-			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier][m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier].size()/2]->Position, 
-			TrivialHeuristic()));
+			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier->name].size() ?
+			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier->name][m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier->name].size()/2]->Position :
+			m_game->enemyTeam->flag->position));
 
 		std::vector<std::shared_ptr<Navigator::Node>> l_ReturnPath(m_Navigator.ComputeAbstractPath(
-			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier][m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier].size()/2]->Position,
-			m_game->team->flagScoreLocation,
-			TrivialHeuristic()));
+			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier->name].size() ?
+			m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier->name][m_BotsAbstractPaths[m_game->enemyTeam->flag->carrier->name].size()/2]->Position :
+			m_game->enemyTeam->flag->position,
+			m_game->team->flagScoreLocation));
 
-		l_BotAbstractPath.insert(l_BotAbstractPath.end(), l_ReturnPath.begin()+1, l_ReturnPath.end());
+		l_BotAbstractPath.insert(l_BotAbstractPath.end(), l_ReturnPath.begin(), l_ReturnPath.end());
+		m_BotsAbstractPaths[in_Bot->name] = l_BotAbstractPath;
 
 		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]),
-				TrivialHeuristic()));
+				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]], 
+				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
 
-		issue(new AttackCommand(in_Bot->name, l_ConcretePath, nullptr, M_SUPPORTSTR));
+		if(l_ConcretePath.empty())
+			issue(new AttackCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position, 
+			GetBestLookAt(in_Bot), M_SUPPORTSTR));
+		else
+			issue(new AttackCommand(in_Bot->name, l_ConcretePath, 
+			GetBestLookAt(in_Bot), M_SUPPORTSTR));
+		m_BotsNodeIndex[in_Bot->name]+=2;
 	}
-	m_BotLastAction[in_Bot] = Planner::SupportFlagCarrier;
+	m_BotLastAction[in_Bot->name] = Planner::SupportFlagCarrier;
 }
 
 void MyCommander::CommandReturnToBase(BotInfo* in_Bot)
@@ -267,23 +289,21 @@ void MyCommander::CommandReturnToBase(BotInfo* in_Bot)
 	if(l_Path.size())
 	{
 		issue(new ChargeCommand(in_Bot->name, l_Path, M_RETURNSTR));
-		m_BotsNodeIndex[in_Bot]+=2;
+		m_BotsNodeIndex[in_Bot->name]+=2;
 	}
-	m_BotLastAction[in_Bot] = Planner::ReturnToBase;
+	m_BotLastAction[in_Bot->name] = Planner::ReturnToBase;
 }
 
 std::vector<Vector2> MyCommander::ComputePathBeginning(BotInfo * in_Bot, const Vector2 & in_Start, const Vector2 & in_Goal)
 {
-	std::cout << in_Bot->name << " Start:" << in_Start << " Goal: " << in_Goal << std::endl;
+	m_BotsAbstractPaths[in_Bot->name] = m_Navigator.ComputeAbstractPath(in_Start, in_Goal);
 
-	m_BotsAbstractPaths[in_Bot] = m_Navigator.ComputeAbstractPath(in_Start, in_Goal, TrivialHeuristic());
-
-	if(m_BotsAbstractPaths[in_Bot].size())
+	if(m_BotsAbstractPaths[in_Bot->name].size())
 	{
-		Vector2 l_Goal = m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]->Position;
+		Vector2 l_Goal = m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position;
 		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), TrivialHeuristic()));
+				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]], 
+				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
 
 		if(l_ConcretePath.empty())
 			l_ConcretePath.push_back(in_Goal);
@@ -295,7 +315,7 @@ std::vector<Vector2> MyCommander::ComputePathBeginning(BotInfo * in_Bot, const V
 void MyCommander::CompletePath(BotInfo* in_Bot)
 {
 	std::string l_Intention;
-	switch (m_BotLastAction.at(in_Bot))
+	switch (m_BotLastAction.at(in_Bot->name))
 	{
 		case Planner::GetEnemyFlag:
 			l_Intention = M_GETFLAGSTR;
@@ -320,31 +340,50 @@ void MyCommander::CompletePath(BotInfo* in_Bot)
 			break;
 	}
 
-	switch (m_BotLastAction.at(in_Bot))
+	switch (m_BotLastAction.at(in_Bot->name))
 	{
 		case Planner::GetEnemyFlag:
-		case Planner::Defend:
-		case Planner::ReturnToBase:
 		{
-			if(m_BotsNodeIndex[in_Bot] == m_BotsAbstractPaths[in_Bot].size()-1)
+			if(m_BotsNodeIndex[in_Bot->name] == m_BotsAbstractPaths[in_Bot->name].size()-1)
 			{
-				issue(new ChargeCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]->Position, l_Intention));
+				issue(new ChargeCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]]->Position, l_Intention));
 			}
 			else
 			{
-				Vector2 l_Goal = m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]->Position;
+				Vector2 l_Goal = m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position;
 				std::vector<Vector2> l_ConcretePath( m_Navigator.ComputeConcretePath(
-							std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]), 
-							std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), 
-							TrivialHeuristic()));
+							m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]], 
+							m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
 
 				if(l_ConcretePath.size())
 					issue(new ChargeCommand(in_Bot->name, l_ConcretePath, l_Intention));
 				else
 					issue(new ChargeCommand(in_Bot->name, l_Goal, l_Intention));
-
-				m_BotsNodeIndex[in_Bot]+=2;
 			}
+			m_BotsNodeIndex[in_Bot->name]+=2;
+			break;
+		}
+		case Planner::Defend:
+		case Planner::ReturnToBase:
+		{
+			if(m_BotsNodeIndex[in_Bot->name] == m_BotsAbstractPaths[in_Bot->name].size()-1)
+			{
+				std::cout << m_BotsAbstractPaths[in_Bot->name].size() << std::endl;
+				issue(new ChargeCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]]->Position, l_Intention));
+			}
+			else
+			{
+				Vector2 l_Goal = m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position;
+				std::vector<Vector2> l_ConcretePath( m_Navigator.ComputeConcretePath(
+							m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]], 
+							m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
+
+				if(l_ConcretePath.size())
+					issue(new ChargeCommand(in_Bot->name, l_ConcretePath, l_Intention));
+				else
+					issue(new ChargeCommand(in_Bot->name, l_Goal, l_Intention));
+			}
+			m_BotsNodeIndex[in_Bot->name]+=2;
 			break;
 		}
 		case Planner::KillFlagCarrier:
@@ -352,29 +391,63 @@ void MyCommander::CompletePath(BotInfo* in_Bot)
 			if((abs(in_Bot->position->x - m_game->enemyTeam->flagScoreLocation.x) 
 				+ abs(in_Bot->position->y - m_game->enemyTeam->flagScoreLocation.y)) < 1.f)
 			{
-				issue(new AttackCommand(in_Bot->name, m_Navigator.ComputeConcretePath(
-					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]),
-					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), 
-					TrivialHeuristic()), nullptr, l_Intention));
+				std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
+					m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]],
+					m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
+				if(l_ConcretePath.size())
+					issue(new AttackCommand(in_Bot->name, l_ConcretePath, 
+					GetBestLookAt(in_Bot), l_Intention));
+				else
+					issue(new AttackCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position, 
+					GetBestLookAt(in_Bot), l_Intention));
 			}
 			else
 			{
-				issue(new ChargeCommand(in_Bot->name, m_Navigator.ComputeConcretePath(
-					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]),
-					std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), TrivialHeuristic()), l_Intention));
+				std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
+					m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]],
+					m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
+				if(l_ConcretePath.size())
+					issue(new ChargeCommand(in_Bot->name, l_ConcretePath, l_Intention));
+				else
+					issue(new ChargeCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position, l_Intention));
 			}
-			m_BotsNodeIndex[in_Bot]+=2;
+			m_BotsNodeIndex[in_Bot->name]+=2;
 			break;
 		}
 		case Planner::SupportFlagCarrier:
 		case Planner::WaitEnemyBase:		
 		{
-			issue(new AttackCommand(in_Bot->name, m_Navigator.ComputeConcretePath(
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]]),
-				std::move(m_BotsAbstractPaths[in_Bot][m_BotsNodeIndex[in_Bot]+1]), TrivialHeuristic()), nullptr, l_Intention));
+			std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
+				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]],
+				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
+			if(l_ConcretePath.size())
+				issue(new AttackCommand(in_Bot->name, l_ConcretePath, 
+				GetBestLookAt(in_Bot), l_Intention));
+			else
+				issue(new AttackCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position,
+				GetBestLookAt(in_Bot), l_Intention));
+			m_BotsNodeIndex[in_Bot->name]+=2;
 			break;
 		}
 	}
+}
+
+boost::optional<Vector2> MyCommander::GetBestLookAt(const BotInfo* in_Bot) const
+{
+	boost::optional<Vector2> l_BestLookAt;
+	double l_ClosestDistance = std::numeric_limits<double>::infinity();
+	std::for_each(m_game->enemyTeam->members.begin(), m_game->enemyTeam->members.end(), 
+		[&l_BestLookAt, &l_ClosestDistance, &in_Bot](const BotInfo* in_EnemyBot)
+	{
+		double l_Distance = abs(in_Bot->position->x - in_EnemyBot->position->x) 
+			+ abs(in_Bot->position->y - in_EnemyBot->position->y);
+		if(l_Distance < l_ClosestDistance)
+		{
+			l_BestLookAt = in_EnemyBot->position;
+			l_ClosestDistance = l_Distance;
+		}
+	});
+	return l_BestLookAt;
 }
 
 void MyCommander::Reset()

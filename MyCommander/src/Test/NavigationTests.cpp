@@ -39,8 +39,8 @@ BOOST_AUTO_TEST_CASE( PathCorrectnessTest )
 	l_ExpectedConcretePath.push_back(Vector2(3.f, 5.f));
 	l_ExpectedConcretePath.push_back(Vector2(3.f, 6.f));
 	l_ExpectedConcretePath.push_back(Vector2(4.f, 6.f));
-	l_ExpectedConcretePath.push_back(Vector2(5.f, 5.f));
-	l_ExpectedConcretePath.push_back(Vector2(6.f, 4.f));
+	l_ExpectedConcretePath.push_back(Vector2(5.f, 6.f));
+	l_ExpectedConcretePath.push_back(Vector2(6.f, 5.f));
 	l_ExpectedConcretePath.push_back(Vector2(7.f, 4.f));
 	l_ExpectedConcretePath.push_back(Vector2(7.f, 3.f));
 	l_ExpectedConcretePath.push_back(Vector2(6.f, 2.f));
@@ -52,7 +52,8 @@ BOOST_AUTO_TEST_CASE( PathCorrectnessTest )
 
 	m_Nav.Init(m_SmallLevel->blockHeights, m_SmallLevel->height, m_SmallLevel->width, 4);
 
-	std::vector<std::shared_ptr<Navigator::Node>> l_AbstractPath(m_Nav.ComputeAbstractPath(m_StartPos, m_GoalPos, TrivialHeuristic()));
+	std::vector<std::shared_ptr<Navigator::Node>> l_AbstractPath(m_Nav.ComputeAbstractPath(m_StartPos, 
+		m_GoalPos));
 	BOOST_REQUIRE(l_AbstractPath.size() == l_ExpectedAbstractPath.size());
 	for(unsigned i = 0; i < l_AbstractPath.size(); ++i)
 		BOOST_REQUIRE(*l_AbstractPath[i] == *l_ExpectedAbstractPath[i]);
@@ -60,7 +61,7 @@ BOOST_AUTO_TEST_CASE( PathCorrectnessTest )
 	std::vector<Vector2> l_ConcretePath;
 	for(unsigned i = 0; i < l_AbstractPath.size()-1; ++i)
 	{
-		vector<Vector2> l_Path(m_Nav.ComputeConcretePath(std::move(l_AbstractPath[i]), std::move(l_AbstractPath[i+1]), TrivialHeuristic()));
+		vector<Vector2> l_Path(m_Nav.ComputeConcretePath(l_AbstractPath[i], l_AbstractPath[i+1]));
 		l_ConcretePath.insert(l_ConcretePath.end(), l_Path.begin(), l_Path.end());
 	}
 	BOOST_REQUIRE(l_ConcretePath.size() == l_ExpectedConcretePath.size());

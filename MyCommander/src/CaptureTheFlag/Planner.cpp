@@ -158,8 +158,8 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const float in_CurrentTime,
 			if(in_Bot->flag)
 				l_Reward -= 80;
 			else if(l_KilledIt != in_Events.end() && l_KilledIt->killedEventData.instigator == in_Bot)
-				l_Reward += 20;
-			else l_Reward += 10;
+				l_Reward += 80;
+			else l_Reward += 20;
 		}
 		case SupportFlagCarrier:
 		{
@@ -172,7 +172,7 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const float in_CurrentTime,
 			{
 				return in_Teammate->flag;
 			}))
-				l_Reward += 8;
+				l_Reward += 10;
 			else
 				l_Reward -= 8;
 		}

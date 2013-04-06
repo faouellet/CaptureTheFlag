@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <boost/optional.hpp>
+
 #include "api\Commander.h"
 
 #include "Navigator.h"
@@ -31,9 +33,9 @@ private:
 	Navigator m_Navigator;
 	Planner m_Planner;
 	boost::chrono::high_resolution_clock::time_point m_Start;
-	std::map<BotInfo*, std::vector<std::shared_ptr<Navigator::Node>>> m_BotsAbstractPaths;
-	std::map<BotInfo*, unsigned> m_BotsNodeIndex;
-	std::map<BotInfo*, Planner::Actions> m_BotLastAction;
+	std::map<std::string, std::vector<std::shared_ptr<Navigator::Node>>> m_BotsAbstractPaths;
+	std::map<std::string, unsigned> m_BotsNodeIndex;
+	std::map<std::string, Planner::Actions> m_BotLastAction;
 
 private:
 	Planner::State GetBotState(const BotInfo* in_Bot);
@@ -41,6 +43,8 @@ private:
 	void ActionToCommand(const Planner::Actions in_Action, BotInfo* in_Bot);
 	std::vector<Vector2> ComputePathBeginning(BotInfo * in_Bot, const Vector2 & in_Start, const Vector2 & in_Goal);
 	
+	boost::optional<Vector2> GetBestLookAt(const BotInfo* in_BotInfo) const;
+
 	void CommandGetEnemyFlag(BotInfo* in_Bot);
 	void CommandWaitEnemyBase(BotInfo* in_Bot);
 	void CommandKillFlagCarrier(BotInfo* in_Bot);

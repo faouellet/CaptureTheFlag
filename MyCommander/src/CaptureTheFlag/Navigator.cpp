@@ -563,8 +563,12 @@ Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, c
 
 	std::shared_ptr<Node> l_StartNode;
 	std::shared_ptr<Node> l_EndNode;
-	Vector2 l_StartPos(floor(in_Start.x + 0.5f), floor(in_Start.y + 0.5f));
-	Vector2 l_GoalPos(floor(in_Goal.x + 0.5f), floor(in_Goal.y + 0.5f));
+	auto l_CIt = m_Clusters[0].begin();
+
+	Vector2 l_StartPos(in_Start.x >= l_CIt->Width ? l_CIt->Width : floor(in_Start.x + 0.5f), 
+		in_Start.y >= l_CIt->Length ? l_CIt->Length : floor(in_Start.y + 0.5f));
+	Vector2 l_GoalPos(in_Goal.x >= l_CIt->Width ? l_CIt->Width : floor(in_Goal.x + 0.5f), 
+		in_Goal.y >= l_CIt->Length ? l_CIt->Length : floor(in_Goal.y + 0.5f));
 
 	auto l_GoalIt = m_Clusters[1].begin();
 	for(; l_GoalIt != m_Clusters[1].end(); ++l_GoalIt)
@@ -573,8 +577,10 @@ Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, c
 			break;
 	}
 	
-	auto l_NodesIt = l_GoalIt->LevelNodes.begin();
-	for(; l_NodesIt != l_GoalIt->LevelNodes.end(); ++l_NodesIt)
+	if(l_GoalIt == m_Clusters[1].end())
+		return std::vector<std::shared_ptr<Node>>();
+	
+	for(auto l_NodesIt = l_GoalIt->LevelNodes.begin(); l_NodesIt != l_GoalIt->LevelNodes.end(); ++l_NodesIt)
 	{
 		if((*l_NodesIt)->Height == 0 && (*l_NodesIt)->Level == 1 && (*l_NodesIt)->Position == l_GoalPos)
 		{
@@ -590,8 +596,10 @@ Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, c
 			break;
 	}
 	
-	l_NodesIt = l_StartIt->LevelNodes.begin();
-	for(; l_NodesIt != l_StartIt->LevelNodes.end(); ++l_NodesIt)
+	if(l_StartIt == m_Clusters[1].end())
+		return std::vector<std::shared_ptr<Node>>();
+	
+	for(auto l_NodesIt = l_StartIt->LevelNodes.begin(); l_NodesIt != l_StartIt->LevelNodes.end(); ++l_NodesIt)
 	{
 		if((*l_NodesIt)->Height == 0 && (*l_NodesIt)->Level == 1 && (*l_NodesIt)->Position == l_StartPos)
 		{
@@ -618,13 +626,16 @@ Navigator::NodeVector Navigator::ComputeAbstractPath(const Vector2 & in_Start, c
 	ConnectToBorder(l_StartNode, *l_StartIt);
 	ConnectToBorder(l_EndNode, *l_GoalIt);
 	
-	AStar(l_StartNode, l_EndNode, m_Graphs[1], TrivialHeuristic());
+	AStar(l_StartNode, l_EndNode, m_Graphs[1], ManhattanDistance());
 
 	return NodeVector(m_Paths[l_StartNode][l_EndNode].begin(), m_Paths[l_StartNode][l_EndNode].end());
 }
 
 std::vector<Vector2> Navigator::ComputeConcretePath(const std::shared_ptr<Node> & in_StartNode, const std::shared_ptr<Node> & in_GoalNode)
 {
+	if(!in_StartNode || !in_GoalNode)
+		return std::vector<Vector2>();
+
 	// Find the cluster which they belong to
 	auto l_ClusterIt = m_Clusters[1].begin();
 	for(; l_ClusterIt != m_Clusters[1].end(); ++l_ClusterIt)

@@ -31,7 +31,7 @@ struct NavigationFixture
 	Vector2 m_StartPos;
 	Vector2 m_GoalPos;
 
-	NavigationFixture() : m_StartPos(0,6), m_GoalPos(1,1)
+	NavigationFixture() : m_StartPos(1,7), m_GoalPos(2,2)
 	{
 		std::string l_SmallLevelStr = ReadAllFile("SmallLevel.json");
 		std::string l_MediumLevelStr = ReadAllFile("MediumLevel.json");

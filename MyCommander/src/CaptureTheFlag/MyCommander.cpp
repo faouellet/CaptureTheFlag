@@ -53,7 +53,6 @@ void MyCommander::tick()
 {
 	m_TimeSpent = 0;
 	m_Start = boost::chrono::high_resolution_clock::now();
-	std::cout << m_game->match->combatEvents.size() << std::endl;
 	for (size_t i = 0; i< m_game->bots_available.size(); ++i)
 	{
 		auto l_Bot = m_game->bots_available[i];
@@ -368,7 +367,6 @@ void MyCommander::CompletePath(BotInfo* in_Bot)
 		{
 			if(m_BotsNodeIndex[in_Bot->name] == m_BotsAbstractPaths[in_Bot->name].size()-1)
 			{
-				std::cout << m_BotsAbstractPaths[in_Bot->name].size() << std::endl;
 				issue(new ChargeCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]]->Position, l_Intention));
 			}
 			else

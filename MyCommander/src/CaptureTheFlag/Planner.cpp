@@ -137,8 +137,10 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const float in_CurrentTime,
 		{
 			if(l_EventIt != in_Events.end())
 			{
-				if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator->team != in_Bot->team)
-					l_Reward += 120;
+				if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator == in_Bot)
+					l_Reward += 80;
+				else if(l_EventIt->type == MatchCombatEvent::TYPE_FLAG_PICKEDUP && l_EventIt->flagPickupEventData.instigator->team == in_Bot->team)
+					l_Reward += 80;
 				else
 					l_Reward -= 32;
 			}			
@@ -188,7 +190,6 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const float in_CurrentTime,
 				l_Reward -= 120;
 		}
 	}
-
 	return l_Reward;
 }
 

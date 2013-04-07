@@ -1,0 +1,11 @@
+L'application serveur (CaptureTheFlag-sdk) contient quelques bogues auxquels je n'ai pu palier et qui pourraient causer de mauvaises surprises
+lors d'une partie.
+
+1- NE PAS modifier la taille de la fenêtre de jeu qui s'ouvre. Ceci fait planter l'application.
+
+2- Un problème à l'interne fait en sorte que le serveur peut lancer un std::length_error: vector<T> too long. Il se produit alors une erreur de connexion, car le
+   serveur met trop de temps/n'est pas capable de répondre au commandant.
+   
+3- Il est possible que vous voyez un agent passez au travers d'un mur.
+
+4- Il est possible que vous voyez un agent en tirer un autre au travers d'un mur qui devrait l'empêcher de voir sa cible.

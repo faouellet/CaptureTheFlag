@@ -1,0 +1,129 @@
+VS BalancedCommander
+TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)  
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+
+NO TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)
+
+VS RandomCommander
+TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+
+NO TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)
+
+VS GreedyCommander
+TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+
+NO TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)
+
+VS DefenderCommander
+TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+
+NO TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)
+
+VS Terminator
+TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+0.1              0.9995             1.0        ()
+
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+0.1              0.9995             0.8        ()
+
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+0.1              0.9995             0.6        ()
+
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+0.1              0.9995             0.4        ()
+
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+0.1              0.9995             0.2        ()
+
+NO TRAINING
+learning rate    discount factor    epsilon    result(MyCommander - Opponent)

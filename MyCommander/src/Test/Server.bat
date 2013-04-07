@@ -1,2 +1,2 @@
 cd ../../../CaptureTheFlag-sdk
-simulate.bat examples.RandomCommander game.NetworkCommander
+simulate.bat examples.BalancedCommander game.NetworkCommander

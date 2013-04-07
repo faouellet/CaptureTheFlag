@@ -174,7 +174,7 @@ int Planner::ComputeReward(const BotInfo * in_Bot, const float in_CurrentTime,
 			{
 				return in_Teammate->flag;
 			}))
-				l_Reward += 10;
+				l_Reward += 20;
 			else
 				l_Reward -= 8;
 		}

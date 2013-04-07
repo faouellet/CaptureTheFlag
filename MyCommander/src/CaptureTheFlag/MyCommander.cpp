@@ -63,10 +63,9 @@ void MyCommander::tick()
 		{
 			m_BotsAbstractPaths[l_Bot->name].clear();
 			m_BotsNodeIndex[l_Bot->name] = 0;
-			CommandGetEnemyFlag(l_Bot);
 		}
 		// Don't issue orders to bots not finished with their abstract path
-		else if(m_BotsNodeIndex[l_Bot->name] && m_BotsNodeIndex[l_Bot->name] < m_BotsAbstractPaths[l_Bot->name].size() - 1)
+		if(m_BotsNodeIndex[l_Bot->name] && m_BotsNodeIndex[l_Bot->name] < m_BotsAbstractPaths[l_Bot->name].size() - 1)
 		{
 			CompletePath(l_Bot);
 		}
@@ -266,17 +265,20 @@ void MyCommander::CommandSupportFlagCarrier(BotInfo* in_Bot)
 		l_BotAbstractPath.insert(l_BotAbstractPath.end(), l_ReturnPath.begin(), l_ReturnPath.end());
 		m_BotsAbstractPaths[in_Bot->name] = l_BotAbstractPath;
 
-		std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
-				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]], 
-				m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
+		if(l_BotAbstractPath.size())
+		{
+			std::vector<Vector2> l_ConcretePath(m_Navigator.ComputeConcretePath(
+					m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]], 
+					m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]));
 
-		if(l_ConcretePath.empty())
-			issue(new AttackCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position, 
-			GetBestLookAt(in_Bot), M_SUPPORTSTR));
-		else
-			issue(new AttackCommand(in_Bot->name, l_ConcretePath, 
-			GetBestLookAt(in_Bot), M_SUPPORTSTR));
-		m_BotsNodeIndex[in_Bot->name]+=2;
+			if(l_ConcretePath.empty())
+				issue(new AttackCommand(in_Bot->name, m_BotsAbstractPaths[in_Bot->name][m_BotsNodeIndex[in_Bot->name]+1]->Position, 
+				GetBestLookAt(in_Bot), M_SUPPORTSTR));
+			else
+				issue(new AttackCommand(in_Bot->name, l_ConcretePath, 
+				GetBestLookAt(in_Bot), M_SUPPORTSTR));
+			m_BotsNodeIndex[in_Bot->name]+=2;
+		}
 	}
 	m_BotLastAction[in_Bot->name] = Planner::SupportFlagCarrier;
 }

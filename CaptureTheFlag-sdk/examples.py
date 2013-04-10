@@ -262,3 +262,14 @@ class BalancedCommander(Commander):
         options = map(lambda f: self.level.findNearestFreePosition(f), flanks)
         return sorted(options, key = lambda p: (bot.position - p).length())[0]
 
+class IdleCommander(Commander):
+    """Author: Felix-Antoine Ouellet"""
+    """CIP:    09 137 551"""
+    """A commander that does nothing. Useful to look at the path planning"""
+
+    def initialize(self):
+        pass
+
+    def tick(self):
+        pass
+		

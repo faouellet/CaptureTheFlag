@@ -115,7 +115,7 @@ struct OfflineFixture
 	}
 };
 
-const double OfflineFixture::MAX_TIME_INIT = 5000.0;
+const double OfflineFixture::MAX_TIME_INIT = 6000.0;
 const double OfflineFixture::MAX_TIME_TICK = 80.0;
 
 #endif // ONLINE_FIXTURE_H

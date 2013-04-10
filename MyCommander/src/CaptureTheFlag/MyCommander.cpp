@@ -57,9 +57,10 @@ void MyCommander::tick()
 	{
 		auto l_Bot = m_game->bots_available[i];
 		
-		if(m_BotLastAction[l_Bot->name] == Planner::GetEnemyFlag 
+		if((m_BotLastAction[l_Bot->name] == Planner::GetEnemyFlag 
 			&& m_BotsAbstractPaths[l_Bot->name].size()
 			&& m_BotsAbstractPaths[l_Bot->name][m_BotsAbstractPaths[l_Bot->name].size()-1]->Position != m_game->enemyTeam->flag->position)
+			|| (m_BotLastAction[l_Bot->name] == Planner::KillFlagCarrier && !m_game->team->flag->carrier))
 		{
 			m_BotsAbstractPaths[l_Bot->name].clear();
 			m_BotsNodeIndex[l_Bot->name] = 0;

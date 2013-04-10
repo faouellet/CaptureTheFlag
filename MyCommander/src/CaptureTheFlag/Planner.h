@@ -47,7 +47,7 @@ private:
 public:
 	Planner() { m_UniformRealDistribution = std::uniform_real_distribution<double>(0.0, 1.0); }
 	void Init(const std::unique_ptr<GameInfo> & in_Game, const bool in_LoadFromDisk = false, 
-		const double in_LearningRate = 0.1, const double in_Epsilon = 0.2, const double in_Discount = 0.9995);
+		const double in_LearningRate = 0.1, const double in_Epsilon = 0.6, const double in_Discount = 0.9995);
 
 	bool LoadPlanFromDisk(const std::string & in_Filename);
 	bool WritePlanToDisk(const std::string & in_Filename);

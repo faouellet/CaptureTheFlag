@@ -81,6 +81,6 @@ struct NavigationFixture
 };
 
 const double NavigationFixture::MAX_SEARCH_TIME = 80.0;
-const double NavigationFixture::MAX_INIT_TIME = 5000.0;
+const double NavigationFixture::MAX_INIT_TIME = 6000.0;
 
 #endif // NAVIGATION_FIXTURE_H

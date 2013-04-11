@@ -7,6 +7,13 @@
 
 #include <vector>
 
+/*
+* Author : Felix-Antoine Ouellet
+* CIP :	   09 137 551
+*
+* Resumable Tests
+* The goal of these tests is to make sure that the resumable functions behave as expected
+*/
 BOOST_AUTO_TEST_SUITE( ResumableTestSuite )
 
 BOOST_AUTO_TEST_CASE( ResumableForEachTest )

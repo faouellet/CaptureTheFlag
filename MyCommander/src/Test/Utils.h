@@ -13,8 +13,9 @@
 /*
 * Author : Felix-Antoine Ouellet
 * CIP :	   09 137 551
-* 
+*
 * Utils
+* Provides a set of common functions to all the tests in the project
 */
 
 inline double ComputeMean(std::vector<double>& in_Durations)

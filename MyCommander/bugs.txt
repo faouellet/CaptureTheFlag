@@ -13,5 +13,7 @@ lors d'une partie.
 
 5- Il est possible que vous voyez un agent en tirer un autre au travers d'un mur qui devrait l'empêcher de voir sa cible.
 
+6- Il est possible que l'agent adverse prenne trop de temps à envoyer ses ordres lors d'un tic de jeu et que cela produise un arrêt abrupt de la partie.
+
 Les organisateurs de la compétition sont en train de tenter de les corriger, mais la prochaine version du moteur et du serveur de jeu contenant ces
 correctifs ne sera probablement pas disponible avant mai 2013.

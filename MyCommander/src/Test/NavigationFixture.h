@@ -31,7 +31,7 @@ struct NavigationFixture
 	Vector2 m_StartPos;
 	Vector2 m_GoalPos;
 
-	NavigationFixture() : m_StartPos(1,7), m_GoalPos(2,2)
+	NavigationFixture() : m_StartPos(0,6), m_GoalPos(1,1)
 	{
 		std::string l_SmallLevelStr = ReadAllFile("SmallLevel.json");
 		std::string l_MediumLevelStr = ReadAllFile("MediumLevel.json");
@@ -76,11 +76,31 @@ struct NavigationFixture
 		std::vector<double> l_AbstractTimes(ToVectorOfDouble(l_AbstractDurations));
 		std::vector<double> l_ConcreteTimes(ToVectorOfDouble(l_ConcreteDurations));
 
+#ifdef _LOG_PERF
+		std::ofstream l_ConcreteFileStream("Concrete Path Perf.txt", std::ios::out | std::ios::binary);
+		if(l_ConcreteFileStream.is_open())
+		{
+			for(unsigned i = 0; i < l_AbstractTimes.size(); ++i)
+			{
+				l_ConcreteFileStream << "Pathfinding:" << i << " Duration: " << l_AbstractTimes[i] << std::endl;
+			}
+		}
+
+		std::ofstream l_AbstractFileStream("Abstract Path Perf.txt", std::ios::out | std::ios::binary);
+		if(l_AbstractFileStream.is_open())
+		{
+			for(unsigned i = 0; i < l_ConcreteTimes.size(); ++i)
+			{
+				l_AbstractFileStream << "Pathfinding:" << i << " Duration: " << l_ConcreteTimes[i] << std::endl;
+			}
+		}
+#endif
+
 		return ComputeMean(l_AbstractTimes) < MAX_SEARCH_TIME && ComputeMean(l_ConcreteTimes) < MAX_SEARCH_TIME;
 	}
 };
 
 const double NavigationFixture::MAX_SEARCH_TIME = 80.0;
-const double NavigationFixture::MAX_INIT_TIME = 6000.0;
+const double NavigationFixture::MAX_INIT_TIME = 7500.0;
 
 #endif // NAVIGATION_FIXTURE_H

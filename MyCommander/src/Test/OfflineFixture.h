@@ -71,6 +71,17 @@ struct OfflineFixture
 
 		std::vector<double> l_Times = ToVectorOfDouble(l_Durations);
 
+#ifdef _LOG_PERF
+		std::ofstream l_FileStream("Offline Init Perf.txt", std::ios::out | std::ios::binary);
+		if(l_FileStream.is_open())
+		{
+			for(unsigned i = 0; i < l_Times.size(); ++i)
+			{
+				l_FileStream << "Decision:" << i << " Duration: " << l_Times[i] << std::endl;
+			}
+		}
+#endif
+
 		return ComputeMean(l_Times) < MAX_TIME_INIT;
 	}
 
@@ -87,6 +98,17 @@ struct OfflineFixture
 		}
 
 		std::vector<double> l_Times = ToVectorOfDouble(l_Durations);
+
+#ifdef _LOG_PERF
+		std::ofstream l_FileStream("Offline Tick Perf.txt", std::ios::out | std::ios::binary);
+		if(l_FileStream.is_open())
+		{
+			for(unsigned i = 0; i < l_Times.size(); ++i)
+			{
+				l_FileStream << "Decision:" << i << " Duration: " << l_Times[i] << std::endl;
+			}
+		}
+#endif
 
 		return ComputeMean(l_Times) < MAX_TIME_TICK;
 	}
@@ -110,6 +132,8 @@ struct OfflineFixture
 		{
 			(*l_BotIt)->position = l_GameInfo->team->botSpawnArea.first;
 			(*l_BotIt)->facingDirection = l_GameInfo->team->botSpawnArea.first;
+			(*l_BotIt)->team = l_GameInfo->teams["Blue"].get();
+			(*l_BotIt)->team->flag = l_GameInfo->flags["BlueFlag"].get();
 		}
 		return l_GameInfo;
 	}

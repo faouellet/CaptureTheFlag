@@ -24,8 +24,11 @@ BOOST_AUTO_TEST_CASE( PathCorrectnessTest )
 {
 	std::vector<std::shared_ptr<Navigator::Node>> l_ExpectedAbstractPath;
 	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(0.f, 6.f))));
-	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(3.f, 6.f))));
-	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(4.f, 6.f))));
+	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(2.f, 4.f))));
+	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(2.f, 3.f))));
+	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(3.f, 3.f))));
+	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(4.f, 3.f))));
+	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(4.f, 4.f))));
 	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(7.f, 4.f))));
 	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(7.f, 3.f))));
 	l_ExpectedAbstractPath.push_back(std::make_shared<Navigator::Node>(Navigator::Node(1, 0, Vector2(4.f, 1.f))));
@@ -36,10 +39,10 @@ BOOST_AUTO_TEST_CASE( PathCorrectnessTest )
 	l_ExpectedConcretePath.push_back(Vector2(0.f, 6.f));
 	l_ExpectedConcretePath.push_back(Vector2(1.f, 5.f));
 	l_ExpectedConcretePath.push_back(Vector2(2.f, 4.f));
-	l_ExpectedConcretePath.push_back(Vector2(3.f, 5.f));
-	l_ExpectedConcretePath.push_back(Vector2(3.f, 6.f));
-	l_ExpectedConcretePath.push_back(Vector2(4.f, 6.f));
-	l_ExpectedConcretePath.push_back(Vector2(5.f, 6.f));
+	l_ExpectedConcretePath.push_back(Vector2(2.f, 3.f));
+	l_ExpectedConcretePath.push_back(Vector2(3.f, 3.f));
+	l_ExpectedConcretePath.push_back(Vector2(4.f, 4.f));
+	l_ExpectedConcretePath.push_back(Vector2(5.f, 5.f));
 	l_ExpectedConcretePath.push_back(Vector2(6.f, 5.f));
 	l_ExpectedConcretePath.push_back(Vector2(7.f, 4.f));
 	l_ExpectedConcretePath.push_back(Vector2(7.f, 3.f));
@@ -83,6 +86,18 @@ BOOST_AUTO_TEST_CASE( InitPerformanceTest )
 	}
 
 	std::vector<double> l_Times(ToVectorOfDouble(l_Durations));
+
+#ifdef _LOG_PERF
+	std::ofstream l_FileStream("Navigation Init Perf.txt", std::ios::out | std::ios::binary);
+	if(l_FileStream.is_open())
+	{
+		for(unsigned i = 0; i < l_Times.size(); ++i)
+		{
+			l_FileStream << "Init:" << i << " Duration: " << l_Times[i] << std::endl;
+		}
+	}
+#endif
+
 	BOOST_REQUIRE(ComputeMean(l_Times) < MAX_INIT_TIME);
 }
 

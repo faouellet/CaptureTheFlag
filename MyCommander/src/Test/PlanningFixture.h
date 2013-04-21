@@ -49,6 +49,10 @@ struct PlanningFixture
 		m_GameInitInfo->bots["Blue2"]->team->flag = m_GameInitInfo->flags["BlueFlag"].get();
 		m_GameInitInfo->bots["Blue3"]->team->flag = m_GameInitInfo->flags["BlueFlag"].get();
 		m_GameInitInfo->bots["Blue4"]->team->flag = m_GameInitInfo->flags["BlueFlag"].get();
+
+		m_GameTickInfo->bots["Blue0"]->team->flag = m_GameTickInfo->flags["BlueFlag"].get();
+		m_GameTickInfo->bots["Blue1"]->team->flag = m_GameTickInfo->flags["BlueFlag"].get();
+		m_GameTickInfo->bots["Blue2"]->team->flag = m_GameTickInfo->flags["BlueFlag"].get();
 	}
 
 	bool TestPerformance()
@@ -59,11 +63,23 @@ struct PlanningFixture
 		for(int i = 0; i < 100; ++i)
 		{
 			l_Start = boost::chrono::high_resolution_clock::now();
-//			m_Plan.GetNextAction(*(m_GameTickInfo->team->members.begin()), M_SUPPORTSTATE);
+			m_Plan.GetNextAction((m_GameTickInfo->bots["Blue0"]).get(), M_SUPPORTSTATE, 0.f, std::vector<MatchCombatEvent>());
 			l_Durations[i] = boost::chrono::high_resolution_clock::now() - l_Start;
 		}
 
 		std::vector<double> l_Times = ToVectorOfDouble(l_Durations);
+
+#ifdef _LOG_PERF
+		std::ofstream l_FileStream("Planning Perf.txt", std::ios::out | std::ios::binary);
+		if(l_FileStream.is_open())
+		{
+			for(unsigned i = 0; i < l_Times.size(); ++i)
+			{
+				l_FileStream << "Decision:" << i << " Duration: " << l_Times[i] << std::endl;
+			}
+		}
+#endif
+		
 		return ComputeMean(l_Times) < MAX_DECISION_TIME;
 	}
 
